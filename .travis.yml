@@ -4,5 +4,6 @@ sudo: required
 
 warnings_are_errors: true
 
-script: test.R
+script: ./test_script.sh
+
 
