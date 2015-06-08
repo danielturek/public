@@ -4,6 +4,10 @@ sudo: required
 
 warnings_are_errors: true
 
+r_packages:
+    - igraph
+    - testthat
+
 before_install: true
 
 install: true
@@ -11,8 +15,5 @@ install: true
 before_script: true
 
 ##script: ./test_script.sh
-
 script: Rscript test.R
-
-
 
