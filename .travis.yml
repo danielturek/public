@@ -10,6 +10,9 @@ install: true
 
 before_script: true
 
-script: ./test_script.sh
+##script: ./test_script.sh
+
+script: Rscript test.R
+
 
 
