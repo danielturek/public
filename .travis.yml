@@ -4,13 +4,11 @@ sudo: required
 
 warnings_are_errors: true
 
-##r_packages:
-##    - igraph
-##    - testthat
+r_packages:
+    - igraph
+    - testthat
 
-before_install:
-    - install.packages('igraph')
-    - install.packages('testthat')
+before_install: true
 
 install: true
 
