@@ -12,9 +12,9 @@ test_that(
 })
 c <- 1 + 3
 print(c)
-test_that('test_that message which should FAIL', {
-    expect_that(sin(pi / 4), equals(1))
-})
+##test_that('test_that message which should FAIL', {
+##    expect_that(sin(pi / 4), equals(1))
+##})
 d <- 1 + 4
 print(d)
 
