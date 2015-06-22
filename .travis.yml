@@ -4,8 +4,14 @@ sudo: required
 
 warnings_are_errors: true
 
-before_install: Rscript travis_before_install.R
-install: true
-before_script: true
-script: Rscript test.R
+r_github_packages:
+##  - nimble-dev/nimble/packages/nimble@devel
+
+install:
+  - Rscript -e "install.packages('igraph',   repos = 'http://cran.us.r-project.org')"
+  - R CMD build packages/nimble
+  - R CMD INSTALL packages/nimble
+
+script:
+    - Rscript test.R
 
