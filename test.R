@@ -1,4 +1,5 @@
 library(igraph)
+library(nimble)
 
 a <- 1 + 1
 print(a)
