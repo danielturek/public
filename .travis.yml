@@ -4,7 +4,7 @@ sudo: required
 
 warnings_are_errors: true
 
-r_github_packages:
+##r_github_packages:
 ##  - nimble-dev/nimble/packages/nimble@devel
 
 install:
