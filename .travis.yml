@@ -8,7 +8,8 @@ r_github_packages:
 ##  - nimble-dev/nimble/packages/nimble@devel
 
 install:
-  - Rscript -e "install.packages('igraph', repos = 'http://cran.us.r-project.org')"
+  - Rscript -e "install.packages('igraph',   repos = 'http://cran.us.r-project.org')"
+  - Rscript -e "install.packages('devtools', repos = 'http://cran.us.r-project.org')"
   - Rscript -e "library(devtools); install_github('nimble-dev/nimble', ref = 'devel', subdir = 'packages/nimble')"
 
 script:
