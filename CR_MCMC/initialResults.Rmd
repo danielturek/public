@@ -1,0 +1,7 @@
+---
+publish: true
+---
+
+```{r}
+print(1)
+```
