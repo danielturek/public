@@ -2,6 +2,14 @@
 publish: true
 ---
 
-##```{r}
-print(1)
+##```{r, message = FALSE}
+load('~/GitHub/userDistMCMC/results.RData')
 ##```
+
+Here is some text.
+
+##```{r, echo = FALSE}
+results$out$dipper$summary
+##```
+
+
