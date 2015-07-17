@@ -2,7 +2,7 @@
 publish: true
 ---
 
-##```{r, message = FALSE}
+##```{r, echo = FALSE}
 load('~/GitHub/userDistMCMC/results.RData')
 ##```
 
