@@ -6,6 +6,7 @@ publish: true
 ```{r, echo=FALSE, message=FALSE}
 library(ggplot2)
 library(dplyr)
+options(digits = 2)
 load('~/GitHub/userDistMCMC/results.RData')
 df <- results$df
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
