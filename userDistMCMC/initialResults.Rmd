@@ -8,7 +8,6 @@ library(ggplot2)
 library(dplyr)
 load('~/GitHub/userDistMCMC/results.RData')
 df <- results$df
- Multiple plot function
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
     library(grid)
     ## Make a list from the ... arguments and plotlist
