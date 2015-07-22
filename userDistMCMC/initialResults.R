@@ -60,7 +60,7 @@ multiplot(p1, p2, p3, p4, cols=4)
 
 
 ##```{r, echo = FALSE}
-results$out$timing
+results$out[[name]]$timing
 ##```
 
 
