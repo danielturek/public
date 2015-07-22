@@ -49,12 +49,13 @@ thisdf <- filter(df, model == name)
 
     
 
-##```{r, echo = FALSE, fig.with=10, fig.height=5}
+##```{r, echo = FALSE, fig.with=8, fig.height=3}
 tempdf <- filter(thisdf, mcmc %in% c('nimble','jags','autoBlock'))
-p1 <- ggplot(tempdf, aes(mcmc, Efficiency, fill=mcmc)) + stat_summary(fun.y='mean', geom='bar') + ggtitle(paste0(name, '\nMean')) + theme(legend.position='none')
-p2 <- ggplot(tempdf, aes(mcmc, Efficiency, fill=mcmc)) + stat_summary(fun.y='min', geom='bar') + ggtitle(paste0(name, '\nMin'))   + theme(legend.position='none')
-p3 <- ggplot(tempdf, aes(mcmc, Efficiency, colour=mcmc)) + geom_point(size=3) + ggtitle(paste0(name, '\npoints')) + theme(legend.position='none')
-p4 <- ggplot(tempdf, aes(mcmc, Efficiency, fill=mcmc)) + stat_summary(fun.y='mean', geom='bar')
+ymax <- max(tempdf$Efficiency)
+p1 <- ggplot(tempdf, aes(mcmc, Efficiency, fill=mcmc)) + stat_summary(fun.y='mean', geom='bar') + ggtitle(paste0(name, '\nMean')) + theme(legend.position='none', axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x = element_blank())
+p2 <- ggplot(tempdf, aes(mcmc, Efficiency, fill=mcmc)) + stat_summary(fun.y='min', geom='bar') + ggtitle(paste0(name, '\nMin'))   + theme(legend.position='none', axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x = element_blank())
+p3 <- ggplot(tempdf, aes(mcmc, Efficiency, colour=mcmc)) + geom_point(size=3) + ggtitle(paste0(name, '\npoints')) + theme(legend.position='none', axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x = element_blank()) + ylim(c(0,ymax))
+p4 <- ggplot(tempdf, aes(mcmc, Efficiency, fill=mcmc)) + stat_summary(fun.y='mean', geom='bar') + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x = element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank())
 multiplot(p1, p2, p3, p4, cols=4)
 ##```
 
