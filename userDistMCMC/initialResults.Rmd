@@ -50,7 +50,7 @@ thisdf <- filter(df, model == name)
 
     
 
-```{r, echo = FALSE, fig.with=8, fig.height=3}
+```{r, echo = FALSE, fig.with=9, fig.height=3.5}
 tempdf <- filter(thisdf, mcmc %in% c('nimble','jags','autoBlock'))
 ymax <- max(tempdf$Efficiency)
 p1 <- ggplot(tempdf, aes(mcmc, Efficiency, fill=mcmc)) + stat_summary(fun.y='mean', geom='bar') + ggtitle(paste0(name, '\nMean')) + theme(legend.position='none', axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x = element_blank())
