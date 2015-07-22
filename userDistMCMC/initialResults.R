@@ -84,10 +84,9 @@ mcmcs <- c('nimble','jags','autoBlock')
 makePlots(thisdf, mcmcs=mcmcs, metric='ESS')
 ##```
 
-## but takes longer than NIMBLE to do so:
+## but takes longer than NIMBLE to do so (algorithm run times):
 
 ##```{r, echo = FALSE}
-message('algorithm run times:')
 results$out[[name]]$timing[mcmcs]
 ##```
 
