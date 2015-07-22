@@ -1,12 +1,17 @@
 ---
 publish: true
 ---
-
+    
 ```{r, echo = FALSE}
+library(ggplot2)
 load('~/GitHub/userDistMCMC/results.RData')
 ```
 
 Here is some text.
+
+```{r, echo = FALSE}
+results$out$dipper$ESS
+```
 
 ```{r, echo = FALSE}
 results$out$dipper$summary
