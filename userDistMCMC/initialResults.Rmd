@@ -97,7 +97,22 @@ results$out[[name]]$timing[mcmcs]
 makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
 ```
 
+```{r, echo = FALSE}
+mcmcs <- c('nimbleCJS', 'autoBlockCJS', 'jagsPoisson')
+```
 
+
+```{r, echo = FALSE, fig.with=10, fig.height=3.5}
+makePlots(thisdf, mcmcs=mcmcs, metric='ESS')
+```
+
+```{r, echo = FALSE}
+results$out[[name]]$timing[mcmcs]
+```
+
+```{r, echo = FALSE, fig.with=10, fig.height=3.5}
+makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
+```
 
 
 ### Orchid model
