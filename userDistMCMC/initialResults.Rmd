@@ -53,7 +53,7 @@ makePlots <- function(df, mcmcs, metric) {
 ```
 
 
-### Basic explanation of plots
+## Basic explanation of plots
 
  In the plots that follow:
 
@@ -61,18 +61,18 @@ makePlots <- function(df, mcmcs, metric) {
 
 - The middle pane displays the *minimum* value of X among all top-level model paramters.
 
-- The right pane displays points giving the actual *value* of X for each top-level model paramter.
+- The right pane displays points giving the *actual value* of X for each top-level model paramter.
 
-- The value of X (indicated by the y-axis label) is either: *ESS*, the effective sample size (per 10,000 MCMC samples), or, *Efficiency*, the effective sample size per second of run-time
+- The value of X (indicated by the y-axis label) is either: *ESS*, the effective sample size (runsulting from 100,000 MCMC samples), or, *Efficiency*, the effective sample size per second of algorithm run-time.
 
 
 
-### Dipper model
+## Dipper model
 
 ```{r, echo = FALSE}
 name <- 'dipper'
 thisdf <- filter(df, model == name)
-mcmcs <- c('nimble','jags','autoBlock')
+mcmcs <- c('nimble','nimble_slice','jags','autoBlock')
 ```
 
  This is the simplest model, which is *not* a multistate model.  Therefore the model structure does not require stochastic indexing, and we can sample directly using NIMBLE's MCMC (without any custom distributions).  There are only two top-level model paramters (p, and phi), and roughly 300 latent states.
@@ -98,7 +98,7 @@ makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
 ```
 
 ```{r, echo = FALSE}
-mcmcs <- c('nimbleCJS', 'autoBlockCJS', 'jagsPoisson')
+mcmcs <- c('nimbleCJS', 'sliceCJS', 'autoBlockCJS', 'jagsPoisson')
 ```
 
 
@@ -115,7 +115,7 @@ makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
 ```
 
 
-### Orchid model
+## Orchid model
 
  The orchid model is a true multi-state model, representing the observations of flowering orchid.  Orchids are observed as flowering, non-flowering, or un-observed.  There are a total of 19 top-level parameters which govern state transitions and observations probabilities, 236 flowers being tracked, and 11 observation periods.
 
@@ -148,7 +148,7 @@ makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
 
 
 
-### Goose model
+## Goose model
 
  4 possible states, 4 observation periods, 21 parameters, 153 unique CR histories, total of 11,200.
 
