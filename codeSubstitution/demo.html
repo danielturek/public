@@ -61,8 +61,8 @@ img {
 
 
 
-<div id="code-objects-in-r" class="section level2">
-<h2>Code objects in R</h2>
+<div id="code-objects-in-r" class="section level3">
+<h3>Code objects in R</h3>
 <p>First, it’s important to understand that code can be treated as an object in R. code objects can be created using <code>quote()</code>, which is in fact <em>exactly</em> what <code>nimbleCode()</code> does. Nothing more. Code objects can subsequently be indexed as nested list objects.</p>
 <pre class="r"><code>x &lt;- quote(a + b)
 x</code></pre>
@@ -120,8 +120,8 @@ z[[1]]    ## `{` is the function call which begins a block of code -- very impor
 <pre><code>## dnorm</code></pre>
 <pre class="r"><code>## etc....</code></pre>
 </div>
-<div id="substitute" class="section level2">
-<h2>substitute()</h2>
+<div id="substitute" class="section level3">
+<h3>substitute()</h3>
 <p>Once we’re comfortable manipulating code objects, we can use <code>substitute()</code>. That’s the real workhorse here. It can do several different things, but when provided with the syntax <code>substitute(EXPR, LIST)</code>, it performs named substitution of names appearing in <code>EXPR</code> with the corresponding (named) list elements appearing in <code>LIST</code>. This will be clear by example. Note, <code>substitute</code> automatically quotes its first argument, so no <code>quote()</code> is necessary.</p>
 <pre class="r"><code>substitute(a + b, list(a = 3, b = 4))</code></pre>
 <pre><code>## 3 + 4</code></pre>
@@ -143,8 +143,8 @@ substitute({
 ##     c &lt;- a + b
 ## }</code></pre>
 </div>
-<div id="evalsubstitutesubstitute" class="section level2">
-<h2>eval(substitute(substitute()))</h2>
+<div id="evalsubstitutesubstitute" class="section level3">
+<h3>eval(substitute(substitute()))</h3>
 <p>Time to level up.</p>
 <p><code>eval(substitute(substitute(...)))</code> is a VERY powerful combination. The first appearance of <code>substitute</code> gets evaluated first (NOT because of the <code>eval()</code>, but because R always evaluates the arguments to functions, e.g., <code>fun(a)</code> will evaluate the variable <code>a</code> and pass that value to <code>fun()</code>).</p>
 <p>The evaluation of this first <code>substitute</code> does a substitution of the (automatically quoted!) next <code>substitute()</code> expression. So it can replace variables within that expression, most specifically, can replace a name with another block of code.</p>

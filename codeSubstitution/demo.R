@@ -3,7 +3,7 @@
 ##---
 
 
-#### Code objects in R
+##### Code objects in R
 
 
 ##```{r, echo=FALSE, message=FALSE}
@@ -50,7 +50,7 @@ z[[3]][[3]][[1]]
 ##```
 
 
-#### substitute()
+##### substitute()
 
 
 ## Once we're comfortable manipulating code objects, we can use `substitute()`.  That's the real workhorse here.  It can do several different things, but when provided with the syntax `substitute(EXPR, LIST)`, it performs named substitution of names appearing in `EXPR` with the corresponding (named) list elements appearing in `LIST`.  This will be clear by example.  Note, `substitute` automatically quotes its first argument, so no `quote()` is necessary.
@@ -73,7 +73,7 @@ substitute({
 ##```
 
 
-#### eval(substitute(substitute()))
+##### eval(substitute(substitute()))
 
 
 ## Time to level up.
