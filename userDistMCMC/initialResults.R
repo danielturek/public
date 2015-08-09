@@ -75,21 +75,29 @@ thisdf <- filter(df, model == name)
 mcmcs <- c('nimble','nimble_slice','jags','autoBlock')
 ##```
 
+###### Model Explanation
+
 ## This is the simplest model, which is *not* a multistate model.  Therefore the model structure does not require stochastic indexing, and we can sample directly using NIMBLE's MCMC (without any custom distributions).  There are only two top-level model paramters (p, and phi), and roughly 300 latent states.
 
 ## For this model, auto-blocking results in scalar sampling of the top-level parameters (since it only operates over continuous-valued parameters, and all latent states are discrete-valued).  Thus, the auto-blocking results are more-or-less identical to the default NIMBLE MCMC.
 
 ## The general result is that JAGS produces much higher ESS:
 
+###### Effective Sample Size (ESS)
+
 ##```{r, echo = FALSE, fig.with=10, fig.height=3.5}
 makePlots(thisdf, mcmcs=mcmcs, metric='ESS')
 ##```
+
+###### Timing
 
 ## but takes longer than NIMBLE to do so (algorithm run times):
 
 ##```{r, echo = FALSE}
 results$out[[name]]$timing[mcmcs]
 ##```
+
+###### Efficiency (ESS/time)
 
 ## still resulting in roughly 2X higher Efficiency in JAGS:
 
@@ -101,14 +109,19 @@ makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
 mcmcs <- c('nimbleCJS', 'sliceCJS', 'autoBlockCJS', 'jagsPoisson')
 ##```
 
+###### Effective Sample Size (ESS)
 
 ##```{r, echo = FALSE, fig.with=10, fig.height=3.5}
 makePlots(thisdf, mcmcs=mcmcs, metric='ESS')
 ##```
 
+###### Timing
+
 ##```{r, echo = FALSE}
 results$out[[name]]$timing[mcmcs]
 ##```
+
+###### Efficiency (ESS/time)
 
 ##```{r, echo = FALSE, fig.with=10, fig.height=3.5}
 makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
@@ -116,6 +129,8 @@ makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
 
 
 #### Orchid model
+
+###### Model Explanation
 
 ## The orchid model is a true multi-state model, representing the observations of flowering orchid.  Orchids are observed as flowering, non-flowering, or un-observed.  There are a total of 19 top-level parameters which govern state transitions and observations probabilities, 236 flowers being tracked, and 11 observation periods.
 
@@ -133,14 +148,19 @@ thisdf <- filter(df, model == name)
 mcmcs <- as.character(unique(thisdf$mcmc))
 ##```
 
+###### Effective Sample Size (ESS)
 
 ##```{r, echo = FALSE, fig.with=10, fig.height=3.5}
 makePlots(thisdf, mcmcs=mcmcs, metric='ESS')
 ##```
 
+###### Timing
+
 ##```{r, echo = FALSE}
 results$out[[name]]$timing[mcmcs]
 ##```
+
+###### Efficiency (ESS/time)
 
 ##```{r, echo = FALSE, fig.with=10, fig.height=3.5}
 makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
@@ -149,6 +169,8 @@ makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
 
 
 #### Goose model
+
+###### Model Explanation
 
 ## 4 possible states, 4 observation periods, 21 parameters, 153 unique CR histories, total of 11,200.
 
@@ -175,14 +197,19 @@ thisdf <- filter(df, model == name)
 mcmcs <- as.character(unique(thisdf$mcmc))
 ##```
 
+###### Efficiency (ESS/time)
 
 ##```{r, echo = FALSE, fig.with=10, fig.height=3.5}
 makePlots(thisdf, mcmcs=mcmcs, metric='ESS')
 ##```
 
+###### Timing
+
 ##```{r, echo = FALSE}
 results$out[[name]]$timing[mcmcs]
 ##```
+
+###### Efficiency (ESS/time)
 
 ##```{r, echo = FALSE, fig.with=10, fig.height=3.5}
 makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
