@@ -55,9 +55,9 @@ makePlots <- function(df, mcmcs, metric) {
 
 #### Introduction
 
-## This provides a summary of the capture-recapture (CR) MCMC analyses done to-date, making use of various user-defined distribution functions.
+## This provides a summary of the capture-recapture (CR) MCMC analyses done to-date, making use of user-defined distribution functions.
 
-## The analysis includes three (each fundamentally different) CR datasets & models, presented in order of increasing complexity.  The first (Dipper) is **not** a multistate CR model, and thus is vastly simpler than the others.  The second (Orchid) is a multistate CR model.  The third and final (Goose) is a multistate model, where each CR history **also** includes a "multiplicity", which represents the number of times that particular CR history is represented in the complete dataset being represented.  Thus, the total number of individuals represented by the Goose dataset is equal to the sum of these "multiplicities".
+## The analyses include three (each fundamentally different) CR datasets & models, presented in order of increasing complexity.  The first (Dipper) is **not** a multistate CR model, and thus is vastly simpler than the others.  The second (Orchid) is a multistate CR model.  The third and final (Goose) is a multistate model, where each CR history also includes a "multiplicity", which represents the number of times that particular CR history is represented in the complete dataset being represented.  Thus, the total number of individuals represented by the Goose dataset is equal to the sum of these "multiplicities".
 
 
 
@@ -66,13 +66,13 @@ makePlots <- function(df, mcmcs, metric) {
 
 ## In the plots that follow:
 
-##- The y-axes represent one of two values, as indicated by the y-axis label.  This is either: **ESS**, the effective sample size runsulting from 100,000 MCMC samples, or, **Efficiency**, the effective sample size per second of algorithm run-time.
+##- The y-axes represent one of two values, as indicated by the y-axis label.  This is either: **ESS**, the effective sample size resulting from 100,000 MCMC samples, or, **Efficiency**, the effective sample size per unit of algorithm run-time.
 
 ##- The left pane displays the **mean** value of y, averaged over all top-level model parameters.
 
-##- The middle pane displays the **minimum** value of y, among all top-level model paramters.
+##- The middle pane displays the **minimum** value of y, among all top-level model parameters.
 
-##- The right pane displays points giving the **actual values** of y, for each top-level model paramter.
+##- The right pane displays points giving the **actual values** of y, for each top-level model parameter.
 
 
 
@@ -86,7 +86,7 @@ mcmcs <- c('nimble','nimble_slice','jags','autoBlock')
 
 ###### Model Explanation
 
-## This is the simplest model, which is **not** a multistate model.  Therefore, the model can be specified **without** using stochastic indexing, and we can sample directly using NIMBLE's MCMC (without any custom distributions).  There are only two top-level model paramters (p, and phi), and roughly 300 latent states.
+## This is the simplest model, which is **not** a multistate model.  Therefore, the model can be specified **without** using stochastic indexing, and we can sample directly using NIMBLE's MCMC (without any custom distributions).  There are only two top-level model parameters (survival and probability of detection), and roughly 300 (discrete, binary valued) latent states.
 
 ###### Effective Sample Size (ESS)
 
@@ -119,13 +119,13 @@ makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
 
 ###### Dipper model with custom distributions
 
-## We now attack the dipper model using some tricks and custom distributions.  Even though these have some different names, the NIMBLE and JAGS algorithms are basically one and the same.  The naming differences ('CJS', 'Poisson') result from implementation details.
+## We now approach the Dipper model using a trick in JAGS, and a custom distribution in NIMBLE.  Even though the algorithm names below are different, the NIMBLE and JAGS algorithms are designed to be identical -- that is, to perform the same calculations.  The naming differences (CJS, Poisson) result from implementation details.
 
-## jagsPoisson uses a trick using the Poisson distribution to do a direct likelihood calculation.
+## jagsPoisson uses a trick using the Poisson distribution to perform a direct likelihood calculation.
 
-## the 'CJS' flavours of NIMBLE use a custom-defined distribution ('dCJS') to do an identical calculation.  There are now exactly two unknwown model parameters, which both follow this custom distribution.  Again, this custom distribution is written to model the same calculation taking place in JAGS.  Using this custom-distribution, nimbleCJS is NIMBLE's default MCMC (RWM sampling), and sliceCJS uses slice sampling.
+## The 'CJS' flavours of NIMBLE use a custom-defined distribution (dCJS) to do an identical calculation.  There are now exactly two unknwown model parameters, which both follow this custom distribution.  Again, this custom distribution is written to perform the same calculation taking place in JAGS.  Using this custom-distribution, nimbleCJS is NIMBLE's default MCMC (RWM sampling), and sliceCJS uses slice sampling.
 
-## Inteestingly, in this case, the autoBlocking algorithm now converges on block sampling these two paramters; consistently so.
+## Inteestingly, in this case, the autoBlocking algorithm now converges on block sampling these two parameters; consistently so.
 
 ##```{r, echo = FALSE}
 mcmcs <- c('nimbleCJS', 'sliceCJS', 'autoBlockCJS', 'jagsPoisson')
@@ -137,7 +137,9 @@ mcmcs <- c('nimbleCJS', 'sliceCJS', 'autoBlockCJS', 'jagsPoisson')
 makePlots(thisdf, mcmcs=mcmcs, metric='ESS')
 ##```
 
+## The blocked sampling produces the lowest ESS, but we'll see it has a quick runtime which compensates for this.
 
+## NIMBLE's slice sampling produces a very high ESS, but this will be offset by a long runtime -- this will be a recurring phenomenon.
 
 ###### Timing
 
@@ -151,11 +153,9 @@ results$out[[name]]$timing[mcmcs]
 makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
 ##```
 
-## We have fundamentally different results this time.
+## We have fundamentally different results this time.  NIMBLE (autoBlocking) is now right on par with JAGS, and NIMBLE's slice sampling is no longer advantageous.
 
-## Pleasingly, NIMBLE (autoBlocking) is now right on par with JAGS, and NIMBLE's slice sampling is no longer advantageous.
-
-## I don't have exact explanations for these results.  Probably could infer something, if pressed to do so.
+## I don't have exact explanations for these results.  Probably could infer something, if pressed to do so.  But the take-home message would be that all algorithms, using the tricks and custom distributions available, are more-or-less on par with one another.
 
 
 
@@ -195,7 +195,7 @@ makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
 
 ## We notice a recurring theme, that NIMBLE's slice sampling produces an excellent ESS, but takes a very long time to do so; and the resulting efficiency isn't very good.  We could probably find the root cause for this, in the fact that **each iteration** of slice sampling involves **possibly many** evaluations of the custom distribution function, which, being written in such a very general manner, certainly makes some sacrifices in (algorithmic runtime) efficiency.
 
-## JAGS and NIMBLE default algorithm (RWM sampling of top-level paramters) are very comparable.  JAGS is slightly better, but overall quite similar.  Once again, JAGS is using slice sampling of top-level parameters, while the nimbleDHMM algorithm uses RWM.
+## JAGS and NIMBLE default algorithm (RWM sampling of top-level parameters) are very comparable.  JAGS is slightly better, but overall quite similar.  Once again, JAGS is using slice sampling of top-level parameters, while the nimbleDHMM algorithm uses RWM.
 
 ## The pleasing surprise result comes from autoBlocking, which converges on two distinct blocks of two parameters each (and univariate sampling of the remaining 15 parameters).  This has the effect of increasing the efficiency of the slowest-mixing parameters (since that's the principle underlying the autoBlocking algorithm), which produces a nice result for the minimum efficiency across all 19 parameters (middle plot).
 
@@ -247,22 +247,21 @@ makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
 
 ## Yet another pleasing surprise from autoBlocking.  It converges on the groups that I'll copy below.
 
-## AutoBlock:
 ##Auto-Blocking converged on the node groupings:
 
-##[1] alpha[1, 1, 1], alpha[2, 1, 1]
+##- alpha[1, 1, 1], alpha[2, 1, 1]
 
-##[2] alpha[1, 1, 2], alpha[2, 1, 2]
+##- alpha[1, 1, 2], alpha[2, 1, 2]
 
-##[3] alpha[1, 2, 1], alpha[2, 2, 1]
+##- alpha[1, 2, 1], alpha[2, 2, 1]
 
-##[4] alpha[1, 2, 2], alpha[1, 3, 2], alpha[2, 2, 2], alpha[2, 3, 2], p[6]
+##- alpha[1, 2, 2], alpha[1, 3, 2], alpha[2, 2, 2], alpha[2, 3, 2], p[6]
 
-##[5] alpha[2, 3, 1], p[3], phi[3]
+##- alpha[2, 3, 1], p[3], phi[3]
 
-##[6] p[1], p[4], phi[1]
+##- p[1], p[4], phi[1]
 
-##[7] p[2], p[5], phi[2]
+##- p[2], p[5], phi[2]
 
 ## Perhaps interesting to note, of the 21 model parameters, autoBlocking has blocked 20 of them.  There's only one parameter left out, alpha[1, 3, 1], which is assigned a univariate RWM sampler.
 
