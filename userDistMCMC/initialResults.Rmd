@@ -128,7 +128,8 @@ makePlots(thisdf, mcmcs=mcmcs, metric='Efficiency')
  Inteestingly, in this case, the autoBlocking algorithm now converges on block sampling these two parameters; consistently so.
 
 ```{r, echo = FALSE}
-mcmcs <- c('nimbleCJS', 'sliceCJS', 'autoBlockCJS', 'jagsPoisson')
+##mcmcs <- c('nimbleCJS', 'sliceCJS', 'autoBlockCJS', 'jagsPoisson')
+mcmcs <- c('nimble','nimble_slice','jags','autoBlock','nimbleCJS', 'sliceCJS', 'autoBlockCJS', 'nimbleCJS2', 'sliceCJS2', 'autoBlockCJS2', 'jagsPoisson')
 ```
 
 #### Effective Sample Size (ESS)
