@@ -2,7 +2,7 @@
 ##publish: true
 ##---
 
-##### Worked exercise using R
+##### In-class exercise using R
 ##### Penguin tagging data
 
 ##```{r}
