@@ -2,7 +2,7 @@
 ##publish: true
 ##---
 
-##```{r, echo = FALSE}
+##```{r}
 a <- 1
 ##```
 
