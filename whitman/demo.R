@@ -19,19 +19,50 @@ y2 <- 68
 n <- c(n1, n2)
 y <- c(y1, y2)
 
+## find sample proportions
+p1 <- y1 / n1
+p2 <- y2 / n2
+p1
+## 0.1976048
+p2
+## 0.3597884
+
+z <- qnorm(0.975)
+
+## standard error
+se <- sqrt(p1*(1-p1)/n1 + p2*(1-p2)/n2)
+se
+## 0.0465637
+
+## 95% Confidence Interval
+p1 - p2 - z * se
+p1 - p2 + z * se
+
+p1 - p2 + c(-1, 1) * z * se
+## -0.2534467 -0.0709204
+
+## 99% Confidence Interval
+z99 <- qnorm(0.995)
+z99
+p1 - p2 + c(-1, 1) * z99 * se
+## -0.28212370 -0.04224344
 
 
+prop.test(y, n, correct = FALSE)
+## 95 percent confidence interval:
+## -0.2534467 -0.0709204
 
+prop.test(y, n, correct = FALSE, conf.level = 0.99)
+## 99 percent confidence interval:
+##  -0.28212370 -0.04224344
 
+p <- (y1+y2)/(n1+n2)
 
+se.p <- sqrt(p*(1-p)*(1/n1+1/n2))
 
-
-
-
-
-
-
-
+Z <- (p1-p2) / se.p
+Z
+pnorm(Z) * 2
 
 
 
