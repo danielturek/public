@@ -128,20 +128,28 @@ Rmcmc_slow <- buildMCMC(spec_slow)
 Cmcmc_slow <- compileNimble(Rmcmc_slow, project = Rmodel, resetFunctions = TRUE)
 ```
 
-### Let's compare these results
+### Let's compare these
 
-What you've all been waiting for
+What you've all been waiting for.
 
 ```{r}
 ## 1 million MCMC iterations
 niter <- 1000000
 
-## Note that whatever performance difference we see
-## is resulting from three additional if() evaulations,
-## on 100 model nodes, for 1 million iterations...
+## Note that whatever performance difference we see is resulting from:
+## three additional if() evaulations,
+## on 100 model nodes,
+## for 1 million iterations...
 
 system.time(Cmcmc$run(niter))
 
 system.time(Cmcmc_slow$run(niter))
+
+## let's try that again:
+
+system.time(Cmcmc$run(niter))
+
+system.time(Cmcmc_slow$run(niter))
+
 ```
 
