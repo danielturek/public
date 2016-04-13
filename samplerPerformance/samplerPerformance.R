@@ -38,9 +38,25 @@ sampler_RW_slow <- nimbleFunction(
         logicalVariable <- FALSE
     },
     run = function() {
-        if(logicalVariable)    { print('should never get here') }
-        if(logicalVariable)    { print('should never get here') }
-        if(logicalVariable)    { print('should never get here') }
+        if(logicalVariable) {
+            print('should never get here')
+            logicalVariable <<- TRUE
+            logicalVariable <<- FALSE
+        }
+        logicalVariable <<- TRUE
+        logicalVariable <<- FALSE
+        if(logicalVariable) {
+            print('should never get here')
+            logicalVariable <<- TRUE
+            logicalVariable <<- FALSE
+        }
+        logicalVariable <<- TRUE
+        logicalVariable <<- FALSE
+        if(logicalVariable) {
+            print('should never get here')
+            logicalVariable <<- TRUE
+            logicalVariable <<- FALSE
+        }
         propValue <- rnorm(1, mean = model[[target]], sd = scale)
      	model[[target]] <<- propValue
         logMHR <- calculateDiff(model, calcNodes)

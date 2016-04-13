@@ -97,9 +97,25 @@ sampler_RW_slow &lt;- nimbleFunction(
         logicalVariable &lt;- FALSE
     },
     run = function() {
-        if(logicalVariable)    { print('should never get here') }
-        if(logicalVariable)    { print('should never get here') }
-        if(logicalVariable)    { print('should never get here') }
+        if(logicalVariable) {
+            print('should never get here')
+            logicalVariable &lt;&lt;- TRUE
+            logicalVariable &lt;&lt;- FALSE
+        }
+        logicalVariable &lt;&lt;- TRUE
+        logicalVariable &lt;&lt;- FALSE
+        if(logicalVariable) {
+            print('should never get here')
+            logicalVariable &lt;&lt;- TRUE
+            logicalVariable &lt;&lt;- FALSE
+        }
+        logicalVariable &lt;&lt;- TRUE
+        logicalVariable &lt;&lt;- FALSE
+        if(logicalVariable) {
+            print('should never get here')
+            logicalVariable &lt;&lt;- TRUE
+            logicalVariable &lt;&lt;- FALSE
+        }
         propValue &lt;- rnorm(1, mean = model[[target]], sd = scale)
         model[[target]] &lt;&lt;- propValue
         logMHR &lt;- calculateDiff(model, calcNodes)
@@ -381,6 +397,16 @@ spec_slow$printSamplers()</code></pre>
 ## [100] RW_slow sampler: a[100],  adaptive: TRUE,  adaptInterval: 200,  scale: 1</code></pre>
 <pre class="r"><code>Rmcmc_slow &lt;- buildMCMC(spec_slow)
 Cmcmc_slow &lt;- compileNimble(Rmcmc_slow, project = Rmodel, resetFunctions = TRUE)</code></pre>
+<pre><code>## Warning, RHS numeric type is losing information in assignment to LHS.logicalVariable &lt;&lt;- 1
+## Warning, RHS numeric type is losing information in assignment to LHS.logicalVariable &lt;&lt;- 0
+## Warning, RHS numeric type is losing information in assignment to LHS.logicalVariable &lt;&lt;- 1
+## Warning, RHS numeric type is losing information in assignment to LHS.logicalVariable &lt;&lt;- 0
+## Warning, RHS numeric type is losing information in assignment to LHS.logicalVariable &lt;&lt;- 1
+## Warning, RHS numeric type is losing information in assignment to LHS.logicalVariable &lt;&lt;- 0
+## Warning, RHS numeric type is losing information in assignment to LHS.logicalVariable &lt;&lt;- 1
+## Warning, RHS numeric type is losing information in assignment to LHS.logicalVariable &lt;&lt;- 0
+## Warning, RHS numeric type is losing information in assignment to LHS.logicalVariable &lt;&lt;- 1
+## Warning, RHS numeric type is losing information in assignment to LHS.logicalVariable &lt;&lt;- 0</code></pre>
 </div>
 <div id="lets-compare-these" class="section level3">
 <h3>Let’s compare these</h3>
@@ -395,18 +421,18 @@ niter &lt;- 1000000
 
 system.time(Cmcmc$run(niter))</code></pre>
 <pre><code>##    user  system elapsed 
-##  16.059   0.256  16.323</code></pre>
+##  15.424   0.259  15.687</code></pre>
 <pre class="r"><code>system.time(Cmcmc_slow$run(niter))</code></pre>
 <pre><code>##    user  system elapsed 
-##  15.549   0.247  15.800</code></pre>
+##  15.570   0.290  15.864</code></pre>
 <pre class="r"><code>## let's try that again:
 
 system.time(Cmcmc$run(niter))</code></pre>
 <pre><code>##    user  system elapsed 
-##  15.559   0.003  15.565</code></pre>
+##  15.343   0.020  15.367</code></pre>
 <pre class="r"><code>system.time(Cmcmc_slow$run(niter))</code></pre>
 <pre><code>##    user  system elapsed 
-##  15.258   0.003  15.269</code></pre>
+##  15.130   0.006  15.140</code></pre>
 </div>
 
 
