@@ -1,6 +1,11 @@
 
 
 
+---
+title: This is the Page Title
+author: Daniel Turek
+---
+
 
 section
 ==========
