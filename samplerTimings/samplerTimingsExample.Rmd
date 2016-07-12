@@ -1,0 +1,62 @@
+
+---
+title: Example of Sampler Timings
+author: Daniel Turek
+output: html_document
+---
+
+```{r, message = FALSE}
+library(nimble)
+```
+
+Define a model with one node.
+
+```{r, message = FALSE }
+code <- nimbleCode({
+    a ~ dnorm(0, 1)
+})
+constants <- list()
+data <- list()
+inits <- list(a = 0)
+
+Rmodel <- nimbleModel(code, constants, data, inits)
+```
+
+We'll add three samplers to node `a`.
+
+The first RW sampler is not adaptive, so it should be fast.
+
+The second RW sampler is adaptive with adaptInterval = 10, very frequent, so it should be slower.
+
+The third is a slice sampler, which should be the slowest.
+
+```{r }
+conf <- configureMCMC(Rmodel, nodes = NULL)
+
+conf$addSampler(target='a', type='RW', control = list(adaptive=FALSE), print=FALSE)
+conf$addSampler(target='a', type='RW', control = list(adaptive=TRUE, adaptInterval=10), print=FALSE)
+conf$addSampler(target='a', type='slice', print=FALSE)
+
+conf$printSamplers()
+```
+
+Build, compile, and run MCMC.
+
+When you run the MCMC using `mcmc$run(...)`, add the extra argument `time = TRUE`, which will make it record sampler timings.
+
+
+```{r }
+Rmcmc <- buildMCMC(conf)
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+system.time(Cmcmc$run(1000000, time = TRUE))
+```
+
+Now we'll extract the times.  It's a vector, with length the number of samplers (in this case, three).  Each number corresponds to the number of seconds (total) spent in each sampler.
+
+
+```{r }
+times <- Cmcmc$getTimes()
+times
+```
+
