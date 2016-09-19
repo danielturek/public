@@ -1,0 +1,86 @@
+
+---
+title: Adding a Conjugate Sampler
+author: Daniel Turek
+output: html_document
+---
+
+
+<!---
+danielturek.github.io/public/folder/fileName.Rmd
+-->
+
+
+It turns out there's already a function (already on devel, Chris!)
+that handles this for you.
+
+If you can believe it, it's called `addConjugateSampler()`.
+
+```{r, message = FALSE}
+library(nimble)
+```
+
+Create a model with a conjugate node.
+
+And a non-conjugate node, for the sake of example.
+
+
+```{r }
+
+code <- nimbleCode({
+     theta ~ dbeta(1, 1)   ## theta will be conjugate
+     for(i in 1:2)
+         x[i] ~ dbin(prob = theta, size = 10)
+     for(i in 1:3)
+         y[i] ~ dnegbin(prob = theta, size = 50)
+     notConjugate ~ dbeta(1, 1)    ## notConjugate will not be conjugate
+     z ~ dnorm(notConjugate, 1)
+})
+
+Rmodel <- nimbleModel(code)
+```
+
+
+Say you want to programmatically add a conjugate sampler for `theta`,
+which is conjugate.
+
+```{r }
+node <- 'theta'
+
+conjInfo <- Rmodel$checkConjugacy2(node)[[node]]
+
+## the conjInfo object has everything we need:
+conjInfo
+
+conf <- configureMCMC(Rmodel, nodes = NULL)
+
+conf$printSamplers()  ## initially, no samplers
+
+conf$addConjugateSampler(conjInfo)
+
+conf$printSamplers()  ## now we have the correct conjugate sampler for 'theta'
+
+```
+
+If you try this procedure with a node that's *not* conjugate:
+
+
+```{r }
+
+node <- 'notConjugate'   ## this node is not conjugate
+
+conjInfo <- Rmodel$checkConjugacy2(node)[[node]]
+
+## conjInfo should be NULL
+conjInfo
+
+```
+
+Let me know if you have any questions.
+
+\
+
+\
+
+
+
