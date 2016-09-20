@@ -1,0 +1,318 @@
+
+---
+title: Avoid recompiling models and MCMCs
+author: Daniel Turek
+output: html_document
+---
+
+<!---
+danielturek.github.io/public/folder/fileName.Rmd
+-->
+
+\
+
+This demonstrates the procedure to avoid recompiling models and MCMC
+algorithms, when experimenting with multiple MCMC algorithms for the
+same model.  It attempts to be  general in terms of models and
+use cases.
+
+There is, however, a lack of generality for the case when the model contains no
+continuous-valued nodes.  We assume that there's at least one
+continuous-valued node in the model.
+
+```{r, message = FALSE}
+library(nimble)
+```
+
+Assume a user has created a model already.  In fact, they've also already created an MCMC for it, and compiled both the model and the MCMC algorithm.
+
+
+```{r, message = FALSE}
+## contains both discrete and continuous nodes
+code <- nimbleCode({
+    a ~ dbern(0.5)
+    b ~ dnorm(0, 1)
+    c ~ dnorm(b, 1)
+})
+
+Rmodel_user <- nimbleModel(code, inits = list(a=0, b=0, c=0))
+
+conf_user <- configureMCMC(Rmodel_user)
+conf_user$printSamplers()
+
+Rmcmc_user <- buildMCMC(conf_user)
+
+Cmodel_user <- compileNimble(Rmodel_user)
+
+Cmcmc_user <- compileNimble(Rmcmc_user, project = Rmodel_user)
+```
+
+Now, the user wants to use some experiemental MCMC algorithm on their
+model.  They will provide their model object (either `Rmodel_user` or
+`Cmodel_user`) as an input to the algorithm.  We don't know which
+they'll provide, but we'll handle both cases.
+
+Let's say they choose to provide the compiled model as input,
+`Cmodel_user`.
+
+
+```{r }
+model_input <- Cmodel_user
+```
+
+The following are all the steps to create and use multiple MCMC
+algorithms.
+
+\ 
+
+# One-time steps
+
+\ 
+
+### Recover the Rmodel object
+
+If they provided the compiled (C) model object, then we recover the
+uncompiled (R) object:
+
+
+```{r }
+if(inherits(model_input, 'CmodelBaseClass')) 
+    model_input <- model_input$Rmodel
+
+## model_input is now an uncompiled model object
+inherits(model_input, 'RmodelBaseClass')
+```
+
+\ 
+
+### Create a new copy of the model
+
+Replicate the model.  This will be for use in the experimental algorithm.
+
+
+```{r, message = FALSE}
+Rmodel <- model_input$newModel(replicate = TRUE, check = FALSE) 
+```
+
+\ 
+
+### Create an initial MCMC configuration
+
+Create an initial configuration object.  We'll need this later.
+
+Also add monitors for all stochastic nodes.
+
+
+```{r }
+conf_initial <- configureMCMC(Rmodel)
+
+monitorsVector <- Rmodel$getNodeNames(stochOnly = TRUE, includeData = FALSE)
+conf_initial$addMonitors(monitorsVector, print = FALSE)
+
+conf_initial$getMonitors()
+```
+
+\ 
+
+### Add samplers to the initial MCMC configuration
+
+This is important.  You need to add one of each sampler that you will
+wish to use, anytime later during the course of the experimental
+algorithm, to the initial configuartion.  So you must
+know all the different types of samplers you might wish to use.  One
+of each will be added to the initial configuration object.
+
+You'll have to be careful here about adding samplers to the
+appropriate type of node (e.g., continuous, discrete).  That's why
+things can fall apart a little bit if there are no continuous nodes,
+since `RW` and `RW_block` samplers can only operate on continuous nodes.
+
+For the purpose of adding those types of samplers, we'll make sure to
+extract the name of a **continuous**-valued node.
+
+
+```{r }
+scalarNodeVector <- Rmodel$getNodeNames(stochOnly=TRUE, includeData=FALSE, returnScalarComponents=TRUE)
+discreteInd <- sapply(scalarNodeVector, function(n) Rmodel$isDiscrete(n), USE.NAMES=FALSE)
+scalarNodeVectorContinuous <<- scalarNodeVector[!discreteInd]
+scalarNodeVectorContinuous
+```
+
+We'll add the RW and RW_block samplers to the first scalar-valued
+node.
+
+This part will break if there are no continuous-valued nodes.
+
+```{r }
+firstScalarNode <- scalarNodeVectorContinuous[1]
+firstScalarNode
+```
+
+\ 
+
+### Add one of each sampler we might use (anytime later)
+
+You'll need to have a list of all the types of samplers that you might
+want to use, anytime later in the experimental algorithm.
+
+We'll add one of each to the initial configuration object.
+
+Also, leave in all the samplers already in the initial configuration,
+since that will include everything in the default configuration
+object.  Most importantly, this will include any conjugate samplers.
+
+```{r }
+conf_initial$printSamplers() 
+
+samplersWeMightUse <- c('RW', 'slice', 'RW_block') 
+
+for(sampler in samplersWeMightUse) 
+    conf_initial$addSampler(target = firstScalarNode, type = sampler) 
+
+conf_initial$printSamplers() 
+```
+
+\ 
+
+### Build and compile the model and initial MCMC
+
+Now we have to compile both our version of the model, and the initial
+MCMC algorithm.
+
+These compilations must take place, but only once.  This is a "one-time" step at the beginning of the experimental algorithm.
+
+
+```{r, message = FALSE}
+Rmcmc_initial <- buildMCMC(conf_initial) 
+
+Cmodel <- compileNimble(Rmodel) 
+Cmcmc_initial <- compileNimble(Rmcmc_initial, project = Rmodel) 
+```
+
+\ 
+
+# Steps to repeat for each new MCMC
+
+Now, we can create and run new MCMC algorithms for the same model,
+without a lengthy compilation.  There will be a call to
+`compileNimble()`, but it will be fast, and reuse existing C++ code
+already created, so it only has to instantiate and populate C++
+objects.  It's very quick.
+
+We'll also be careful to start our version of the (compiled) model at
+the same initial values every time, just so every MCMC algorithm
+begins at the same initial values.
+
+\ 
+
+### Step 1: Set values in Cmodel back to initial values
+
+```{r }
+nimCopy(from = model_input, to = Cmodel, logProb = TRUE) 
+calculate(Cmodel) 
+```
+
+\ 
+
+### Step 2: Create a new configuration object, add any samplers
+
+This step is critical.  Notice we'll use the argument
+`configureMCMC(oldConf = ...)`.  That's the key.
+
+
+```{r }
+## create a new configuration from the initial confuration (important!)
+conf_new <- configureMCMC(oldConf = conf_initial) 
+
+## remove all samplers
+conf_new$setSamplers()
+conf_new$printSamplers()
+```
+
+
+Now add whatever samplers out experimental algorithms dictates.
+
+These must be a subset of the types of samplers already compiled.
+
+Say we want all `slice` samplers the first time.
+
+```{r }
+nodes <- c('a', 'b', 'c') 
+
+for(node in nodes) 
+    conf_new$addSampler(target = node, type = 'slice') 
+
+conf_new$printSamplers() 
+```
+
+\ 
+
+### Step 3: Build, compile and run the new MCMC
+
+```{r, message = FALSE}
+Rmcmc_new <- buildMCMC(conf_new) 
+
+Cmcmc_new <- compileNimble(Rmcmc_new, project = Rmodel) 
+
+Cmcmc_new$run(1000, progressBar = FALSE)
+
+samples <- as.matrix(Cmcmc_new$mvSamples)
+```
+
+\ 
+
+# One more time
+
+Let's do one more "iteration" of our experimental algorithm.
+
+This time, all the repeated steps will be together, and we'll add one
+`RW_block` sampler instead of three `slice` samplers.
+
+
+```{r }
+## reset values in Cmodel to initial values
+nimCopy(from = model_input, to = Cmodel, logProb = TRUE) 
+calculate(Cmodel) 
+
+## create a new configuration from the initial configuration (important!)
+conf_new <- configureMCMC(oldConf = conf_initial)
+
+## remove all samplers
+conf_new$setSamplers()
+conf_new$printSamplers() 
+
+## this time we only want a RW_block sampler on 'b' and 'c'
+conf_new$addSampler(target = c('b', 'c'), type = 'RW_block') 
+
+conf_new$printSamplers() 
+
+## build, compile, and run
+Rmcmc_new <- buildMCMC(conf_new) 
+Cmcmc_new <- compileNimble(Rmcmc_new, project = Rmodel) 
+Cmcmc_new$run(1000, progressBar = FALSE)
+
+## extract samples for analysis
+samples <- as.matrix(Cmcmc_new$mvSamples)
+```
+
+\ 
+
+Make sense?
+
+Questions or comments to <dbt1@williams.edu>
+
+\
+
+\
+
+\
+
+
+
+
+
+
+
+
+
+
