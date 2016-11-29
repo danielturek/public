@@ -1,18 +1,60 @@
 ---
-title: TITLE
+title: Block Adaptation Algorithm used in JAGS
 author: Daniel Turek
 output: html_document
 ---
 
 <!---
-danielturek.github.io/public/folder/fileName
+danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation
 -->
 
-```{r, message = FALSE}
-library(nimble)
+\  
+
+### Background
+
+\  
+
+##### Application of Block Sampler
+
+The JAGS block sampler (Metropolis-Hastings with multivariate normal proposal) is assigned to sample all multivariate distributions which are not otherwise conjugate.  JAGS contains conjugate samplers for multivariate cases:
+
+- Multivariate Normal - Multivariate Normal (mean)
+- Dirichlet - Multinomial (probability)
+- Wishart - Multivariate Normal (precision)
+
+\  
+
+##### Source Code
+
+The JAGS block sampler is called (in JAGS) the `MNormal` sampler, I assume for "Multivariate Normal".
+
+Code implementing the JAGS block sampler can be found in the JAGS source code:
+
+```
+JAGS-4.2.0/src/modules/bugs/samplers/MNormal.cc
 ```
 
-[TEXT](URL)
+\  
 
-<a href='URL' target='_blank'>TEXT OPEN IN NEW TAB</a>
+
+##### General Outline of Adaptation Procedure
+
+The JAGS block sampler has two distrinct "regeimes".  When the mean acceptance rate reaches a desired range, it transitions from Regieme1 to Regieme2, never to transition back.
+
+Regieme1: proposal covariance begins as the Identity matrix, and the diagonal elements uniformly scale.
+
+Regieme2: both the scale factor and the elements of the covariance matrix will adapt.
+
+\  
+
+
+##### Fundamental differences from existing NIMBLE `RW_block` sampler
+
+
+
+
+\  
+
+
+
 
