@@ -1,0 +1,18 @@
+---
+title: TITLE
+author: Daniel Turek
+output: html_document
+---
+
+<!---
+danielturek.github.io/public/folder/fileName
+-->
+
+```{r, message = FALSE}
+library(nimble)
+```
+
+[TEXT](URL)
+
+<a href='URL' target='_blank'>TEXT OPEN IN NEW TAB</a>
+
