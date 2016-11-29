@@ -122,7 +122,7 @@ $(document).ready(function () {
 
 
 <!---
-danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation
+danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation.html
 -->
 <p> </p>
 <div id="background" class="section level3">
@@ -147,15 +147,62 @@ danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation
 </div>
 <div id="general-outline-of-adaptation-procedure" class="section level5">
 <h5>General Outline of Adaptation Procedure</h5>
-<p>The JAGS block sampler has two distrinct “regeimes”. When the mean acceptance rate reaches a desired range, it transitions from Regieme1 to Regieme2, never to transition back.</p>
-<p>Regieme1: proposal covariance begins as the Identity matrix, and the diagonal elements uniformly scale.</p>
-<p>Regieme2: both the scale factor and the elements of the covariance matrix will adapt.</p>
+<p>The JAGS block sampler has two distrinct “regimes”. When the mean acceptance rate reaches a desired range, it transitions from Regime 1 to Regime 2, never to transition back.</p>
+<p>Regime 1: proposal covariance begins as the Identity matrix, and the diagonal elements uniformly scale.</p>
+<p>Regime 2: both the scale factor and the elements of the covariance matrix will adapt.</p>
 <p> </p>
 </div>
 <div id="fundamental-differences-from-existing-nimble-rw_block-sampler" class="section level5">
 <h5>Fundamental differences from existing NIMBLE <code>RW_block</code> sampler</h5>
+<ul>
+<li>The existance of two distinct regimes, and a one-time transition between them.</li>
+<li>Tracking the mean acceptance probability as <em>the mean of the actual acceptance probabilities</em>, instead of the observed fraction of accepted proposals (as NIMBLE does).</li>
+<li>Fixed target acceptance rate of 0.234 (NIMBLE has different, higher target rates, for dimension <span class="math inline">\(d=2,3,4\)</span>).</li>
+<li><span class="math inline">\(scale\)</span> is updated on <em>every iteration</em> in both regimes; proposal covariance is updated on <em>every iteration</em> in Regime 2 (NIMBLE only updates these every <span class="math inline">\(adaptInterval=200\)</span> iterations).</li>
+<li>Different algorithms for adapting <span class="math inline">\(scale\)</span> of proposal covariance (which also differs by regime), and for adapting proposal covariance (see below).</li>
+</ul>
 <p> </p>
 </div>
+</div>
+<div id="regime-1-details" class="section level3">
+<h3>Regime 1 Details</h3>
+<p> </p>
+<p>Initialize:</p>
+<ul>
+<li><span class="math inline">\(scale=1\)</span></li>
+<li>proposal covariance: <span class="math inline">\(\Sigma = I\)</span></li>
+<li><span class="math inline">\(n_{step} = 10\)</span> (governs adaptation of <span class="math inline">\(scale\)</span>)</li>
+</ul>
+<p>On each iteration:</p>
+<ul>
+<li>Propose MH transition: <span class="math inline">\(x_{proposal} = x_{current} + scale \cdot W\)</span>, where <span class="math inline">\(W \sim MVN(0, \Sigma)\)</span></li>
+<li>If acceptance probability (<span class="math inline">\(p\)</span>) <em>transitions relative to previous iteration</em> from below target acceptance rate (0.234) to above it, or vise-versa, then increment <span class="math inline">\(n_{step} = n_{step}+1\)</span></li>
+<li>Update: <span class="math inline">\(scale_{new} = scale_{old} \cdot e^{\frac{p-0.234}{n_{step}}}\)</span>, thus decaying adaptation based upon value of <span class="math inline">\(n_{step}\)</span>, bearing in mind the non-constant increment scheme of <span class="math inline">\(n_{step}\)</span>.</li>
+</ul>
+<p>Every 100 iterations:</p>
+<ul>
+<li>Calculate <span class="math inline">\(\bar{p}\)</span>, the <em>mean acceptance probability over that last 100 iterations</em> (quite literally) as: <span class="math inline">\(\bar{p} = \frac{1}{100} \sum_{\text{last 100 iterations}} p_i\)</span></li>
+<li>If <span class="math inline">\(0.15 \leq \bar{p} \leq 0.35\)</span>, then <strong>transition to Regime 2</strong></li>
+</ul>
+<p> </p>
+</div>
+<div id="regime-2-details" class="section level3">
+<h3>Regime 2 Details</h3>
+<p> </p>
+<p>Initialize:</p>
+<ul>
+<li><span class="math inline">\(n_{step} = 100\)</span>, regardless of where it ended in Regime 1 (somewhat equivalent, since we’ll now be using <span class="math inline">\(\sqrt{n_{step}}\)</span>)</li>
+</ul>
+<p>On each iteration:</p>
+<ul>
+<li>Propose MH transition: <span class="math inline">\(x_{proposal} = x_{current} + scale \cdot W\)</span>, where <span class="math inline">\(W \sim MVN(0, \Sigma)\)</span></li>
+<li>Increment <span class="math inline">\(n_{step} = n_{step}+1\)</span> (in Regime 2 increments on <em>every</em> iteration).</li>
+<li>Update: <span class="math inline">\(scale_{new} = scale_{old} \cdot e^{\frac{p-0.234}{\sqrt{n_{step}}}}\)</span> (note the root in exponent: slower decay, but continuously incrementing)</li>
+</ul>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
 </div>
 
 

@@ -5,7 +5,7 @@ output: html_document
 ---
 
 <!---
-danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation
+danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation.html
 -->
 
 \  
@@ -39,22 +39,72 @@ JAGS-4.2.0/src/modules/bugs/samplers/MNormal.cc
 
 ##### General Outline of Adaptation Procedure
 
-The JAGS block sampler has two distrinct "regeimes".  When the mean acceptance rate reaches a desired range, it transitions from Regieme1 to Regieme2, never to transition back.
+The JAGS block sampler has two distrinct "regimes".  When the mean acceptance rate reaches a desired range, it transitions from Regime 1 to Regime 2, never to transition back.
 
-Regieme1: proposal covariance begins as the Identity matrix, and the diagonal elements uniformly scale.
+Regime 1: proposal covariance begins as the Identity matrix, and the diagonal elements uniformly scale.
 
-Regieme2: both the scale factor and the elements of the covariance matrix will adapt.
+Regime 2: both the scale factor and the elements of the covariance matrix will adapt.
 
 \  
 
 
 ##### Fundamental differences from existing NIMBLE `RW_block` sampler
 
-
+- The existance of two distinct regimes, and a one-time transition between them.
+- Tracking the mean acceptance probability as *the mean of the actual acceptance probabilities*, instead of the observed fraction of accepted proposals (as NIMBLE does).
+- Fixed target acceptance rate of 0.234 (NIMBLE has different, higher target rates, for dimension $d=2,3,4$).
+- $scale$ is updated on *every iteration* in both regimes; proposal covariance is updated on *every iteration* in Regime 2 (NIMBLE only updates these every $adaptInterval=200$ iterations).
+- Different algorithms for adapting $scale$ of proposal covariance (which also differs by regime), and for adapting proposal covariance (see below).
 
 
 \  
 
 
+### Regime 1 Details
+
+\   
+
+Initialize:
+
+- $scale=1$
+- proposal covariance: $\Sigma = I$
+- $n_{step} = 10$ (governs adaptation of $scale$)
+
+On each iteration:
+
+- Propose MH transition: $x_{proposal} = x_{current} + scale \cdot W$, where $W \sim MVN(0, \Sigma)$
+- If acceptance probability ($p$) *transitions relative to previous iteration* from below target acceptance rate (0.234) to above it, or vise-versa, then increment $n_{step} = n_{step}+1$
+- Update: $scale_{new} = scale_{old} \cdot e^{\frac{p-0.234}{n_{step}}}$, thus decaying adaptation based upon value of $n_{step}$, bearing in mind the non-constant increment scheme of $n_{step}$.
+
+Every 100 iterations:
+
+- Calculate $\bar{p}$, the *mean acceptance probability over that last 100 iterations* (quite literally) as: $\bar{p} = \frac{1}{100} \sum_{\text{last 100 iterations}} p_i$
+- If $0.15 \leq \bar{p} \leq 0.35$, then **transition to Regime 2**
+
+
+\  
+
+### Regime 2 Details
+
+\  
+
+Initialize:
+
+- $n_{step} = 100$, regardless of where it ended in Regime 1 (somewhat equivalent, since we'll now be using $\sqrt{n_{step}}$)
+
+On each iteration:
+
+- Propose MH transition: $x_{proposal} = x_{current} + scale \cdot W$, where $W \sim MVN(0, \Sigma)$
+- Increment $n_{step} = n_{step}+1$ (in Regime 2 increments on *every* iteration).
+- Update: $scale_{new} = scale_{old} \cdot e^{\frac{p-0.234}{\sqrt{n_{step}}}}$ (note the root in exponent: slower decay, but continuously incrementing)
+
+
+\   
+
+\   
+
+\   
+
+\   
 
 
