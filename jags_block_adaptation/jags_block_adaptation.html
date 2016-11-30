@@ -128,8 +128,8 @@ danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation.html
 <div id="background" class="section level3">
 <h3>Background</h3>
 <p> </p>
-<div id="application-of-block-sampler" class="section level5">
-<h5>Application of Block Sampler</h5>
+<div id="applications-jags-of-block-sampler" class="section level5">
+<h5>Applications JAGS of Block Sampler</h5>
 <p>The JAGS block sampler (Metropolis-Hastings with multivariate normal proposal) is assigned to sample all multivariate distributions which are not otherwise conjugate. JAGS contains conjugate samplers for multivariate cases:</p>
 <ul>
 <li>Multivariate Normal - Multivariate Normal (mean)</li>
@@ -140,26 +140,26 @@ danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation.html
 </div>
 <div id="source-code" class="section level5">
 <h5>Source Code</h5>
-<p>The JAGS block sampler is called (in JAGS) the <code>MNormal</code> sampler, I assume for “Multivariate Normal”.</p>
-<p>Code implementing the JAGS block sampler can be found in the JAGS source code:</p>
+<p>The JAGS block sampler is called the <code>MNormal</code> or the <code>MNormalMetropolis</code> sampler, I assume for “Multivariate Normal”.</p>
+<p>Implementation can be found in the JAGS source code:</p>
 <pre><code>JAGS-4.2.0/src/modules/bugs/samplers/MNormal.cc</code></pre>
 <p> </p>
 </div>
 <div id="general-outline-of-adaptation-procedure" class="section level5">
 <h5>General Outline of Adaptation Procedure</h5>
-<p>The JAGS block sampler has two distrinct “regimes”. When the mean acceptance rate reaches a desired range, it transitions from Regime 1 to Regime 2, never to transition back.</p>
-<p>Regime 1: proposal covariance begins as the Identity matrix, and the diagonal elements uniformly scale.</p>
-<p>Regime 2: both the scale factor and the elements of the covariance matrix will adapt.</p>
+<p>The JAGS block sampler has two distrinct “regimes” of operation. When the mean acceptance probability first reaches a specified range, it transitions from Regime 1 to Regime 2, never to transition back.</p>
+<p>Regime 1: Proposal covariance begins as the Identity matrix, and the diagonal elements uniformly adapt to affect the acceptance probability.</p>
+<p>Regime 2: Both a scale factor and the off-diagonal elements of the covariance matrix will adapt.</p>
 <p> </p>
 </div>
 <div id="fundamental-differences-from-existing-nimble-rw_block-sampler" class="section level5">
 <h5>Fundamental differences from existing NIMBLE <code>RW_block</code> sampler</h5>
 <ul>
 <li>The existance of two distinct regimes, and a one-time transition between them.</li>
-<li>Tracking the mean acceptance probability as <em>the mean of the actual acceptance probabilities</em>, instead of the observed fraction of accepted proposals (as NIMBLE does).</li>
-<li>Fixed target acceptance rate of 0.234 (NIMBLE has different, higher target rates, for dimension <span class="math inline">\(d=2,3,4\)</span>).</li>
+<li>Calculating the achieved acceptance probability as <em>the mean of the actual acceptance probabilities</em>, instead of the observed fraction of accepted proposals (as NIMBLE does).</li>
+<li>Fixed target acceptance rate of 0.234 (NIMBLE has different, higher target rates, for dimensions <span class="math inline">\(d=2,3,4\)</span>).</li>
 <li><span class="math inline">\(scale\)</span> is updated on <em>every iteration</em> in both regimes; proposal covariance is updated on <em>every iteration</em> in Regime 2 (NIMBLE only updates these every <span class="math inline">\(adaptInterval=200\)</span> iterations).</li>
-<li>Different algorithms for adapting <span class="math inline">\(scale\)</span> of proposal covariance (which also differs by regime), and for adapting proposal covariance (see below).</li>
+<li>Different algorithms for adapting <span class="math inline">\(scale\)</span> (which also differ by regime), and for adapting proposal covariance.</li>
 </ul>
 <p> </p>
 </div>
@@ -182,7 +182,7 @@ danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation.html
 <p>Every 100 iterations:</p>
 <ul>
 <li>Calculate <span class="math inline">\(\bar{p}\)</span>, the <em>mean acceptance probability over that last 100 iterations</em> (quite literally) as: <span class="math inline">\(\bar{p} = \frac{1}{100} \sum_{\text{last 100 iterations}} p_i\)</span></li>
-<li>If <span class="math inline">\(0.15 \leq \bar{p} \leq 0.35\)</span>, then <strong>transition to Regime 2</strong></li>
+<li>If 0.15 <span class="math inline">\(\leq \bar{p} \leq\)</span> 0.35, then <strong>transition to Regime 2</strong></li>
 </ul>
 <p> </p>
 </div>
@@ -191,13 +191,32 @@ danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation.html
 <p> </p>
 <p>Initialize:</p>
 <ul>
-<li><span class="math inline">\(n_{step} = 100\)</span>, regardless of where it ended in Regime 1 (somewhat equivalent, since we’ll now be using <span class="math inline">\(\sqrt{n_{step}}\)</span>)</li>
+<li><span class="math inline">\(n_{step} = 100\)</span>, regardless of where it ended in Regime 1 (somewhat equivalent, since we’ll now be using <span class="math inline">\(\sqrt{n_{step}}\)</span> to update <span class="math inline">\(scale\)</span>)</li>
 </ul>
 <p>On each iteration:</p>
 <ul>
 <li>Propose MH transition: <span class="math inline">\(x_{proposal} = x_{current} + scale \cdot W\)</span>, where <span class="math inline">\(W \sim MVN(0, \Sigma)\)</span></li>
-<li>Increment <span class="math inline">\(n_{step} = n_{step}+1\)</span> (in Regime 2 increments on <em>every</em> iteration).</li>
+<li>Increment <span class="math inline">\(n_{step} = n_{step}+1\)</span> (in Regime 2, <span class="math inline">\(n_{step}\)</span> increments on <em>every</em> iteration).</li>
 <li>Update: <span class="math inline">\(scale_{new} = scale_{old} \cdot e^{\frac{p-0.234}{\sqrt{n_{step}}}}\)</span> (note the root in exponent: slower decay, but continuously incrementing)</li>
+<li>On iteration <span class="math inline">\(n\)</span>, calculate running weighted posterior mean <span class="math inline">\(\mu_n\)</span> using samples (<span class="math inline">\(x_i\)</span>) since transition to Regime 2:
+<ul>
+<li>Calculated via recurrance: <span class="math inline">\(\mu_0=0\)</span>, and <span class="math inline">\(\mu_n = \left( \frac{n-1}{n+1} \right) \mu_{n-1} + \left( \frac{2}{n+1} \right) x_n\)</span> for <span class="math inline">\(n \geq\)</span> 1</li>
+<li>This is equivalent to, and more intutive to understand:
+<ul>
+<li><span class="math inline">\(\mu_1 = x_1\)</span></li>
+<li><span class="math inline">\(\mu_2 = \tfrac{2}{3}x_2 + \tfrac{1}{3}x_1\)</span></li>
+<li><span class="math inline">\(\mu_3 = \tfrac{3}{6}x_3 + \tfrac{2}{6}x_2 + \tfrac{1}{6}x_1\)</span></li>
+<li><span class="math inline">\(\mu_4 = \tfrac{4}{10}x_4 + \tfrac{3}{10}x_3 + \tfrac{2}{10}x_2 + \tfrac{1}{10}x_1\)</span></li>
+<li>where <span class="math inline">\(x_1\)</span> is first sample of <span class="math inline">\(x\)</span> since entering Regime 2, etc…</li>
+</ul></li>
+</ul></li>
+<li>On iteration <span class="math inline">\(n\)</span>, update proposal covariance <span class="math inline">\(\Sigma\)</span> using recurrance:
+<ul>
+<li><span class="math inline">\(\Sigma_0 = I\)</span>, and <span class="math inline">\(\Sigma_n = \left( \frac{n-2}{n} \right) \Sigma_{n-1} + \left( \frac{2}{n} \right) (x_n-\mu_n)(x_n-\mu_n)^\text{T}\)</span> for <span class="math inline">\(n \geq\)</span> 1</li>
+<li>Can also be written as weighted sums of <span class="math inline">\((x_i-\mu_i)(x_i-\mu_i)^\text{T}\)</span> terms, similar to <span class="math inline">\(\mu_n\)</span></li>
+<li>Effect is a similar “recently-weighted mean” of <span class="math inline">\((x_i-\mu_i)(x_i-\mu_i)^\text{T}\)</span> terms</li>
+<li>But careful here, because <span class="math inline">\(n\)</span> used is <em>total number of iterations</em> from Regime 1 and Regime 2</li>
+</ul></li>
 </ul>
 <p> </p>
 <p> </p>

@@ -14,7 +14,7 @@ danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation.html
 
 \  
 
-##### Application of Block Sampler
+##### Applications JAGS of Block Sampler
 
 The JAGS block sampler (Metropolis-Hastings with multivariate normal proposal) is assigned to sample all multivariate distributions which are not otherwise conjugate.  JAGS contains conjugate samplers for multivariate cases:
 
@@ -26,9 +26,9 @@ The JAGS block sampler (Metropolis-Hastings with multivariate normal proposal) i
 
 ##### Source Code
 
-The JAGS block sampler is called (in JAGS) the `MNormal` sampler, I assume for "Multivariate Normal".
+The JAGS block sampler is called the `MNormal` or the `MNormalMetropolis` sampler, I assume for "Multivariate Normal".
 
-Code implementing the JAGS block sampler can be found in the JAGS source code:
+Implementation can be found in the JAGS source code:
 
 ```
 JAGS-4.2.0/src/modules/bugs/samplers/MNormal.cc
@@ -39,11 +39,11 @@ JAGS-4.2.0/src/modules/bugs/samplers/MNormal.cc
 
 ##### General Outline of Adaptation Procedure
 
-The JAGS block sampler has two distrinct "regimes".  When the mean acceptance rate reaches a desired range, it transitions from Regime 1 to Regime 2, never to transition back.
+The JAGS block sampler has two distrinct "regimes" of operation.  When the mean acceptance probability first reaches a specified range, it transitions from Regime 1 to Regime 2, never to transition back.
 
-Regime 1: proposal covariance begins as the Identity matrix, and the diagonal elements uniformly scale.
+Regime 1: Proposal covariance begins as the Identity matrix, and the diagonal elements uniformly adapt to affect the acceptance probability.
 
-Regime 2: both the scale factor and the elements of the covariance matrix will adapt.
+Regime 2: Both a scale factor and the off-diagonal elements of the covariance matrix will adapt.
 
 \  
 
@@ -51,10 +51,10 @@ Regime 2: both the scale factor and the elements of the covariance matrix will a
 ##### Fundamental differences from existing NIMBLE `RW_block` sampler
 
 - The existance of two distinct regimes, and a one-time transition between them.
-- Tracking the mean acceptance probability as *the mean of the actual acceptance probabilities*, instead of the observed fraction of accepted proposals (as NIMBLE does).
-- Fixed target acceptance rate of 0.234 (NIMBLE has different, higher target rates, for dimension $d=2,3,4$).
+- Calculating the achieved acceptance probability as *the mean of the actual acceptance probabilities*, instead of the observed fraction of accepted proposals (as NIMBLE does).
+- Fixed target acceptance rate of 0.234 (NIMBLE has different, higher target rates, for dimensions $d=2,3,4$).
 - $scale$ is updated on *every iteration* in both regimes; proposal covariance is updated on *every iteration* in Regime 2 (NIMBLE only updates these every $adaptInterval=200$ iterations).
-- Different algorithms for adapting $scale$ of proposal covariance (which also differs by regime), and for adapting proposal covariance (see below).
+- Different algorithms for adapting $scale$ (which also differ by regime), and for adapting proposal covariance.
 
 
 \  
@@ -79,7 +79,7 @@ On each iteration:
 Every 100 iterations:
 
 - Calculate $\bar{p}$, the *mean acceptance probability over that last 100 iterations* (quite literally) as: $\bar{p} = \frac{1}{100} \sum_{\text{last 100 iterations}} p_i$
-- If $0.15 \leq \bar{p} \leq 0.35$, then **transition to Regime 2**
+- If 0.15 $\leq \bar{p} \leq$ 0.35, then **transition to Regime 2**
 
 
 \  
@@ -90,13 +90,27 @@ Every 100 iterations:
 
 Initialize:
 
-- $n_{step} = 100$, regardless of where it ended in Regime 1 (somewhat equivalent, since we'll now be using $\sqrt{n_{step}}$)
+- $n_{step} = 100$, regardless of where it ended in Regime 1 (somewhat equivalent, since we'll now be using $\sqrt{n_{step}}$ to update $scale$)
 
 On each iteration:
 
 - Propose MH transition: $x_{proposal} = x_{current} + scale \cdot W$, where $W \sim MVN(0, \Sigma)$
-- Increment $n_{step} = n_{step}+1$ (in Regime 2 increments on *every* iteration).
+- Increment $n_{step} = n_{step}+1$ (in Regime 2, $n_{step}$ increments on *every* iteration).
 - Update: $scale_{new} = scale_{old} \cdot e^{\frac{p-0.234}{\sqrt{n_{step}}}}$ (note the root in exponent: slower decay, but continuously incrementing)
+- On iteration $n$, calculate running weighted posterior mean $\mu_n$ using samples ($x_i$) since transition to Regime 2:
+    - Calculated via recurrance: $\mu_0=0$, and $\mu_n = \left( \frac{n-1}{n+1} \right) \mu_{n-1} + \left( \frac{2}{n+1} \right) x_n$ for $n \geq$ 1
+    - This is equivalent to, and more intutive to understand:
+        - $\mu_1 = x_1$
+        - $\mu_2 = \tfrac{2}{3}x_2 + \tfrac{1}{3}x_1$
+        - $\mu_3 = \tfrac{3}{6}x_3 + \tfrac{2}{6}x_2 + \tfrac{1}{6}x_1$
+        - $\mu_4 = \tfrac{4}{10}x_4 + \tfrac{3}{10}x_3 + \tfrac{2}{10}x_2 + \tfrac{1}{10}x_1$
+        - where $x_1$ is first sample of $x$ since entering Regime 2, etc...
+- On iteration $n$, update proposal covariance $\Sigma$ using recurrance:
+    - $\Sigma_0 = I$, and $\Sigma_n = \left( \frac{n-2}{n} \right) \Sigma_{n-1} + \left( \frac{2}{n} \right) (x_n-\mu_n)(x_n-\mu_n)^\text{T}$ for $n \geq$ 1
+    - Can also be written as weighted sums of $(x_i-\mu_i)(x_i-\mu_i)^\text{T}$ terms, similar to $\mu_n$
+    - Effect is a similar "recently-weighted mean" of $(x_i-\mu_i)(x_i-\mu_i)^\text{T}$ terms
+    - But careful here, because $n$ used is *total number of iterations* from Regime 1 and Regime 2
+	
 
 
 \   
