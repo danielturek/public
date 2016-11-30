@@ -24,18 +24,6 @@ The JAGS block sampler (Metropolis-Hastings with multivariate normal proposal) i
 
 \  
 
-##### Source Code
-
-The JAGS block sampler is called the `MNormal` or the `MNormalMetropolis` sampler, I assume for "Multivariate Normal".
-
-Implementation can be found in the JAGS source code:
-
-```
-JAGS-4.2.0/src/modules/bugs/samplers/MNormal.cc
-```
-
-\  
-
 
 ##### General Outline of Adaptation Procedure
 
@@ -55,6 +43,19 @@ Regime 2: Both a scale factor and the off-diagonal elements of the covariance ma
 - Fixed target acceptance rate of 0.234 (NIMBLE has different, higher target rates, for dimensions $d=2,3,4$).
 - $scale$ is updated on *every iteration* in both regimes; proposal covariance is updated on *every iteration* in Regime 2 (NIMBLE only updates these every $adaptInterval=200$ iterations).
 - Different algorithms for adapting $scale$ (which also differ by regime), and for adapting proposal covariance.
+
+\  
+
+
+##### Source Code
+
+The JAGS block sampler is called the `MNormal` or the `MNormalMetropolis` sampler, I assume for "Multivariate Normal".
+
+Implementation can be found in the JAGS source code:
+
+```
+JAGS-4.2.0/src/modules/bugs/samplers/MNormal.cc
+```
 
 \  
 

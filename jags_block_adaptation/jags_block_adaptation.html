@@ -138,13 +138,6 @@ danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation.html
 </ul>
 <p> </p>
 </div>
-<div id="source-code" class="section level5">
-<h5>Source Code</h5>
-<p>The JAGS block sampler is called the <code>MNormal</code> or the <code>MNormalMetropolis</code> sampler, I assume for “Multivariate Normal”.</p>
-<p>Implementation can be found in the JAGS source code:</p>
-<pre><code>JAGS-4.2.0/src/modules/bugs/samplers/MNormal.cc</code></pre>
-<p> </p>
-</div>
 <div id="general-outline-of-adaptation-procedure" class="section level5">
 <h5>General Outline of Adaptation Procedure</h5>
 <p>The JAGS block sampler has two distrinct “regimes” of operation. When the mean acceptance probability first reaches a specified range, it transitions from Regime 1 to Regime 2, never to transition back.</p>
@@ -161,6 +154,13 @@ danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation.html
 <li><span class="math inline">\(scale\)</span> is updated on <em>every iteration</em> in both regimes; proposal covariance is updated on <em>every iteration</em> in Regime 2 (NIMBLE only updates these every <span class="math inline">\(adaptInterval=200\)</span> iterations).</li>
 <li>Different algorithms for adapting <span class="math inline">\(scale\)</span> (which also differ by regime), and for adapting proposal covariance.</li>
 </ul>
+<p> </p>
+</div>
+<div id="source-code" class="section level5">
+<h5>Source Code</h5>
+<p>The JAGS block sampler is called the <code>MNormal</code> or the <code>MNormalMetropolis</code> sampler, I assume for “Multivariate Normal”.</p>
+<p>Implementation can be found in the JAGS source code:</p>
+<pre><code>JAGS-4.2.0/src/modules/bugs/samplers/MNormal.cc</code></pre>
 <p> </p>
 </div>
 <div id="reference" class="section level5">
