@@ -56,6 +56,14 @@ Regime 2: Both a scale factor and the off-diagonal elements of the covariance ma
 - $scale$ is updated on *every iteration* in both regimes; proposal covariance is updated on *every iteration* in Regime 2 (NIMBLE only updates these every $adaptInterval=200$ iterations).
 - Different algorithms for adapting $scale$ (which also differ by regime), and for adapting proposal covariance.
 
+\  
+
+
+##### Reference
+
+According to Martyn, the adaptation algorithm is "loosely based on":
+
+> Andrieu and Thoms, *A tutorial on adaptive MCMC*, Statistics and Computing 18:4 (2008).
 
 \  
 
