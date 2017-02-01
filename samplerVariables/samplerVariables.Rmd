@@ -1,0 +1,124 @@
+---
+title: Recording and setting sampler variables
+author: Daniel Turek
+output: html_document
+---
+
+<!---
+danielturek.github.io/public/samplerVariables/samplerVariables.html
+-->
+
+
+Load NIMBLE, set the option `buildInterfacesForCompiledNestedNimbleFunctions`.
+
+```{r, message = FALSE}
+library(nimble)
+nimbleOptions(buildInterfacesForCompiledNestedNimbleFunctions = TRUE)
+set.seed(0)
+```
+
+Example model.  Any model will do.
+
+```{r }
+code <- nimbleCode({
+     for(i in 1:10) {
+         x[i] ~ dnorm(0, sd=10)
+         y[i] ~ dnorm(exp(x[i]), sd=10000)
+     }
+})
+
+constants <- list()
+data <- list(y = rnorm(10, 10, 1))
+inits <- list(x = rep(0,10))
+
+Rmodel <- nimbleModel(code, constants, data, inits)
+```
+
+Make an MCMC, with one of each type of sampler, run the MCMC.
+
+```{r }
+conf <- configureMCMC(Rmodel, nodes=NULL)
+
+conf$addSampler('x[1]', 'slice')
+conf$addSampler('x[1:3]', 'RW_block')
+conf$addSampler('x[4:6]', 'AF_slice', control=list(sliceWidths=rep(1,3)))
+conf$addSampler('x[8:10]', 'RW_rotated_block')
+
+conf$printSamplers()
+Rmcmc <- buildMCMC(conf)
+
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+
+Cmcmc$run(10000)
+```
+
+Here's how you can extract the adaptive tuning parameters for each
+type of sampler:
+
+
+```{r }
+## slice sampler:
+## width (scalar)
+Cmcmc$samplerFunctions$contentsList[[1]]$width
+
+## RW_block sampler:
+## scale (scalar)
+## propCov (dxd matrix)
+Cmcmc$samplerFunctions$contentsList[[2]]$scale
+Cmcmc$samplerFunctions$contentsList[[2]]$propCov
+
+## AF_slice sampler:
+## width (length-d vector)
+## gammaMat (dxd matrix)
+Cmcmc$samplerFunctions$contentsList[[3]]$width
+Cmcmc$samplerFunctions$contentsList[[3]]$gammaMat
+
+## RW_rotated_block sampler:
+## scaleVector (length-d vector)
+## factorMat (dxd matrix)
+Cmcmc$samplerFunctions$contentsList[[4]]$scaleVector
+Cmcmc$samplerFunctions$contentsList[[4]]$factorMat
+```
+
+You can also *set* the values of any of these adaptive parameters:
+
+```{r }
+## slice sampler: 
+Cmcmc$samplerFunctions$contentsList[[1]]$width
+Cmcmc$samplerFunctions$contentsList[[1]]$width <- 4 
+Cmcmc$samplerFunctions$contentsList[[1]]$width
+
+## RW_block sampler: 
+Cmcmc$samplerFunctions$contentsList[[2]]$scale
+Cmcmc$samplerFunctions$contentsList[[2]]$scale <- 3
+Cmcmc$samplerFunctions$contentsList[[2]]$scale
+
+## AF_slice sampler:
+Cmcmc$samplerFunctions$contentsList[[3]]$width
+Cmcmc$samplerFunctions$contentsList[[3]]$width <- 1:3
+Cmcmc$samplerFunctions$contentsList[[3]]$width
+
+## RW_rotated_block sampler:
+Cmcmc$samplerFunctions$contentsList[[4]]$factorMat
+Cmcmc$samplerFunctions$contentsList[[4]]$factorMat <- diag(3)
+Cmcmc$samplerFunctions$contentsList[[4]]$factorMat
+```
+
+Is this what you need to do?
+
+\   
+
+\   
+
+\   
+
+
+
+
+
+
+
+
+
+
