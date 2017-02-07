@@ -1,0 +1,217 @@
+---
+title: Toggle MCMC Samplers
+author: Daniel Turek
+output: html_document
+---
+
+<!---
+danielturek.github.io/public/folder/fileName.html
+-->
+
+This will demonstrate how to toggle MCMC samplers on/off.  It's a fairly custom approach, not really intended for mainstream use, but the techniques could be refined.  In any case, it should get you going.
+ 
+I would be happy to be kept in the loop, regarding this research.
+
+## Preliminaries
+
+Load NIMBLE library.
+
+```{r, message = FALSE}
+library(nimble)
+```
+
+You'll need this sampler definition.
+
+It will generate a warning when you define it.  You can thank Chris for that  ;)
+
+```{r message = FALSE}
+sampler_toggle <- nimbleFunction(
+    contains = sampler_BASE,
+    setup = function(model, mvSaved, target, control) {
+        type <- control$type
+        nested_sampler_name <- paste0('sampler_', type)
+        control_new <- nimbleOptions('MCMCcontrolDefaultList')
+        control_new[[names(control)]] <- control
+        nested_sampler_list <- nimbleFunctionList(sampler_BASE)
+        nested_sampler_list[[1]] <- do.call(nested_sampler_name, list(model, mvSaved, target, control_new))
+        toggle <- 1
+    },
+    run = function() {
+        if(toggle == 1)
+            nested_sampler_list[[1]]$run()
+    },
+    methods = list(
+        reset = function()
+            nested_sampler_list[[1]]$reset()
+    )
+)
+```
+
+## Setting up the model and MCMC
+
+This next section only needs to be done once.  There are several important specifics here, and generally all steps must be done, in order.
+
+The model is a simplification of yours, but it should work fine adding additional layers above `y.censored` and `X`.
+
+```{r message=FALSE, warning=FALSE}
+code <- nimbleCode({ 
+    ##q[1:N,1:N]  ~ dwish(R = aq[1:N,1:N], df = bq)
+    ##Q[1:N,1:N] <- inverse(q[1:N,1:N])
+    ##X.mod[1:N] ~ dmnorm(muf[1:N],prec = pf[1:N,1:N])
+    ## add process error
+    X[1:N]  ~ dmnorm(X.mod[1:N],prec = q[1:N,1:N])
+    ## Analysis
+    y.censored[1:N] ~ dmnorm(X[1:N], prec = r[1:N,1:N]) 
+    for(i in 1:N){
+        y.ind[i] ~ dconstraint(y.censored[i] > 0)
+    }
+})
+
+N <- 5   ## works with other values of N
+
+constants <- list(N=N, X.mod=rep(10,N), q=diag(N), r=diag(N))
+
+## the values of y.ind and y.censored are just placeholders...
+## BUT, important, y.censored *must* be specified as data at this point.
+## it's a long story why, has to do with the initializeModel routine
+## at the beginning of MCMC execution
+data <- list(y.ind=rep(1,N), y.censored=rep(10,N))  
+
+inits <- list(X=rep(10,N))
+
+Rmodel <- nimbleModel(code, constants, data, inits)
+
+conf <- configureMCMC(Rmodel, print=TRUE)
+
+## important!
+## this is needed for correct indexing later
+samplerNumberOffset <- length(conf$getSamplers())
+
+for(i in 1:N) {
+    node <- paste0('y.censored[',i,']')
+    conf$addSampler(node, 'toggle', control=list(type='RW'))
+    ## could instead use slice samplers, or any combination thereof, e.g.:
+    ##conf$addSampler(node, 'toggle', control=list(type='slice'))
+}
+
+conf$printSamplers()
+
+conf$printMonitors()
+
+## can monitor y.censored, if you wish, to verify correct behaviour
+conf$addMonitors('y.censored')
+
+Rmcmc <- buildMCMC(conf)
+
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+```
+
+## Repeated steps with new datasets
+
+The steps hereafter can be repeated with new datasets (as
+demonstrated)
+
+\   
+
+#### New Dataset 1 
+
+Mix of data and non-data.
+
+```{r }
+y.ind <- c(1, 1, 1, 0, 0)
+
+## important!
+## change: rather than providing NA for the non-data values (those to be sampled),
+## you'll have to provide some values here.
+## that's because we effectively disabled the model initialization routine earlier
+y.censored <- c(9, 9, 11, 20, 20)
+
+Cmodel$y.ind <- y.ind
+Cmodel$y.censored <- y.censored
+
+for(i in 1:N) {
+    ## ironically, here we have to "toggle" the value of y.ind[i]
+    ## this specifies that when y.ind[i] = 1,
+    ## indicator variable is set to 0, which specifies *not* to sample
+    valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[samplerNumberOffset+i]], 'toggle', 1-y.ind[i])
+}
+
+niter <- 1000
+set.seed(0)
+samples <- runMCMC(Cmcmc, niter, progressBar=FALSE)
+
+head(samples)
+tail(samples)
+```
+
+\   
+
+#### New Dataset 2 
+
+Everything is data.
+
+```{r }
+y.ind <- c(1, 1, 1, 1, 1)   ## everything is data
+
+y.censored <- c(9, 9, 11, 11, 12)
+ 
+Cmodel$y.ind <- y.ind 
+Cmodel$y.censored <- y.censored
+ 
+for(i in 1:N) {
+    valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[samplerNumberOffset+i]], 'toggle', 1-y.ind[i])
+}
+
+niter <- 1000 
+set.seed(0)
+samples <- runMCMC(Cmcmc, niter, progressBar=FALSE)
+
+head(samples)
+tail(samples)
+```
+
+\   
+
+#### New Dataset 3
+
+Nothing is data.
+
+```{r }
+y.ind <- c(0, 0, 0, 0, 0)   ## nothing is data
+
+## again, you'll have to provide actual numeric (initial) values
+## for the nodes that will be sampled:
+y.censored <- c(20, 20, 20, 20, 20)
+
+Cmodel$y.ind <- y.ind
+Cmodel$y.censored <- y.censored
+
+for(i in 1:N) {
+    valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[samplerNumberOffset+i]], 'toggle', 1-y.ind[i])
+}
+
+niter <- 1000
+set.seed(0)
+samples <- runMCMC(Cmcmc, niter, progressBar=FALSE)
+
+head(samples)
+tail(samples)
+```
+
+Send along any questions or comments.
+
+-Daniel
+
+\  
+
+\  
+
+\  
+
+\  
+
+
+
+
+
