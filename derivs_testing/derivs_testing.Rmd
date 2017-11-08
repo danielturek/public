@@ -1,0 +1,120 @@
+---
+title: Testing Derivatives in NIMBLE
+author: Daniel Turek
+output: html_document
+---
+
+<!---
+danielturek.github.io/public/derivs_testing/derivs_testing..html
+-->
+
+Basic testing of `nimDerivs`.  At least, how I thought it should work.  I'm not getting the results I expected.
+
+```{r, message = FALSE}
+library(nimble)
+nimbleOptions(experimentalEnableDerivs = TRUE)
+```
+
+Setup a model with some interesting posterior.  I did this to be a bi-modal posterior for `a`, idea being to get some interesting derivatives.
+
+```{r }
+code <- nimbleCode({
+    a ~ dnorm(0, 1)
+    y[1] ~ dnorm(a, 1)
+    y[2] ~ dnorm(a^2, 1)
+})
+constants <- list()
+data <- list(y = c(2, 4))
+inits <- list(a = 0)
+
+Rmodel <- nimbleModel(code, constants, data, inits)
+```
+
+
+Look at a graph of the posterior of `a`:
+
+```{r }
+xs <- seq(-4, 4, by=0.01)
+ys <- numeric()
+for(i in seq_along(xs)) {
+    Rmodel$a <- xs[i]
+    ys[i] <- Rmodel$calculate()
+}
+
+plot(xs, ys, type = 'l')
+```
+
+
+Just check values of the posterior against the graph, as a realit check
+
+```{r }
+Rmodel$a <- 1
+Rmodel$calculate()
+
+Rmodel$a <- 2
+Rmodel$calculate()
+
+Rmodel$a <- 3
+Rmodel$calculate()
+```
+
+Now, going to make some graphs of the **derivate** of the posterior of `a`.  First using a standard R function, and calling `nimDerivs`.
+
+```{r }
+f <- function(x) {
+    Rmodel$a <- x
+    dOut <- nimDerivs(Rmodel$calculate(c('a','y[1]','y[2]')), order=1, wrt='a')
+    d <- dOut$gradient[1,1]
+    return(d)
+}
+
+ds <- numeric()
+for(i in seq_along(xs)) {
+    x <- xs[i]
+    ds[i] <- f(x)
+}
+```
+
+Plot of the posterior of `a` in black, and the derivate in blue.  Not what I was expecting.
+
+```{r }
+plot(xs, ys, type = 'l', ylim = range(c(ys,ds)))
+lines(xs, ds, col = 'blue')
+```
+
+Now, try the same thing except using `derivs` inside a nimbleFunction.  Look at the same graph.
+
+```{r }
+nfDef <- nimbleFunction(
+    setup = function(model, node) {},
+    run = function(x = double()) {
+        model[[node]] <<- x
+        derivsOutput <- derivs(model$calculate(c('a','y[1]','y[2]')), order = 1, wrt = node)
+        d <- derivsOutput$gradient[1,1]
+        returnType(double(0))
+        return(d)
+    }
+)
+
+Rnf <- nfDef(Rmodel, 'a')
+
+Rnf$run(-2)
+Rnf$run(-1)
+Rnf$run(0)
+Rnf$run(1)
+Rnf$run(2)
+
+ds <- numeric()
+for(i in seq_along(xs)) {
+    x <- xs[i]
+    ##ds[i] <- f(x)
+    ds[i] <- Rnf$run(x)
+}
+
+plot(xs, ys, type = 'l', ylim = range(c(ys,ds)))
+lines(xs, ds, col = 'blue')
+```
+
+Again, not what I was expecting (although consistent with before).  What am I doing wrong??
+
+
