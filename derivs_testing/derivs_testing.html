@@ -127,6 +127,7 @@ danielturek.github.io/public/derivs_testing/derivs_testing.html
 -->
 <p>Basic testing of <code>nimDerivs</code>. At least, how I thought it should work. I’m not getting the results I expected.</p>
 <pre class="r"><code>library(nimble)
+library(numDeriv)
 nimbleOptions(experimentalEnableDerivs = TRUE)</code></pre>
 <p>Setup a model with some interesting posterior. I did this to be a bi-modal posterior for <code>a</code>, idea being to get some interesting derivatives.</p>
 <pre class="r"><code>code &lt;- nimbleCode({

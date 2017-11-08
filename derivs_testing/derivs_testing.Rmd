@@ -12,6 +12,7 @@ Basic testing of `nimDerivs`.  At least, how I thought it should work.  I'm not 
 
 ```{r, message = FALSE}
 library(nimble)
+library(numDeriv)
 nimbleOptions(experimentalEnableDerivs = TRUE)
 ```
 
