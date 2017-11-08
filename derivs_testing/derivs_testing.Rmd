@@ -5,7 +5,7 @@ output: html_document
 ---
 
 <!---
-danielturek.github.io/public/derivs_testing/derivs_testing..html
+danielturek.github.io/public/derivs_testing/derivs_testing.html
 -->
 
 Basic testing of `nimDerivs`.  At least, how I thought it should work.  I'm not getting the results I expected.
