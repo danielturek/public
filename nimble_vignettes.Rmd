@@ -15,7 +15,7 @@ danielturek.github.io/public/nimble_vignettes.html
 \   
 
 
-<a href="http://danielturek.github.io/public/RW_record/RW_record.html" target="_blank">RW Record Sampler</a> - Writing the RW sampler so that it records (and you can access) the scale history and acceptance rate history.
+<a href="http://danielturek.github.io/public/RW_record/RW_record.html" target="_blank">Recording Sampler Tuning Parameters</a> - Writing the RW sampler so that it records (and you can access) the scale history and acceptance rate history.
 
 <a href="http://danielturek.github.io/public/restartingMCMC/restartingMCMC.html" target="_blank">Restarting NIMBLE MCMC</a> - How to continue an MCMC algorithm from where it left off, after restarting an R session.
 
@@ -25,14 +25,17 @@ danielturek.github.io/public/nimble_vignettes.html
 
 <a href="http://danielturek.github.io/public/NIMBLE/MCMC_suite_example.html" target="_blank">MCMC Suite Example</a> - An example of using NIMBLE's MCMC Suite to run BUGS, JAGS, or different NIMBLE MCMCs.
 
-<a href="https://danielturek.github.io/nngp/analysis/index.html" target="_blank">Gaussian Process, Nearest Neighbor Gaussian Process</a> - Shows how to fit full GP and NNGP models with NIMBLE's MCMC.
+<a href="https://danielturek.github.io/nngp/analysis/index.html" target="_blank">Gaussian Process, Nearest Neighbor Gaussian Process</a> - How to fit full GP and NNGP models with NIMBLE's MCMC.
 
 <a href="http://danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation.html" target="_blank">JAGS Block Sampling Adaptation</a> - Describes the algorithm underlying JAGS' block sampler adaptation scheme.
 
-<a href="http://danielturek.github.io/public/codeSubstitution/demo.html" target="_blank">Code Substitution</a> - Demonstrates how to manipulate `code` objects in R, including use of the `substitute` and `eval` functions.
+<a href="http://danielturek.github.io/public/codeSubstitution/demo.html" target="_blank">Code Substitution</a> - How to manipulate `code` objects in R, including use of the `substitute` and `eval` functions.
 
+<a href="http://danielturek.github.io/public/recordingSamples/recordingSamples.html" target="_blank">Recording Sampler Pre- and Post-Update Values</a> - How to modify NIMBLE MCMC samplers, so they internally record parameter values before and after updating them.  This can be useful for post-analysis of sampler performance.
 
+<a href="http://danielturek.github.io/public/samplerTimings/samplerTimingsExample.html" target="_blank">Timing Individual MCMC Samplers</a> - An example of how to measure the runtime of each individual MCMC sampler.  This can be useful for post-analysis of sampler performance.
 
+<a href="http://danielturek.github.io/public/samplerVariables/samplerVariables.html" target="_blank">Sampler State Variables</a> - How to extract and set the "state" variables, stored internally in MCMC sampling algorithms.
 
-
+<a href="http://danielturek.github.io/public/toggleSamplers/toggleSamplers.html" target="_blank">Toggling MCMC Samplers On/Off</a> - How to modify MCMC samplers so they can be toggled on or off for different MCMC runs or datasets.
 
