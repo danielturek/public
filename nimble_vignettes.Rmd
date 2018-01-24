@@ -21,4 +21,18 @@ danielturek.github.io/public/nimble_vignettes.html
 
 <a href="http://danielturek.github.io/public/restartingMCMC/restartingMCMC.html" target="_blank">Adding a Conjugate Sampler</a> - How to manually add a conjugate sampler to an MCMC configuration object.
 
+<a href="http://danielturek.github.io/public/avoidRecompile/avoidRecompileMCMC.html" target="_blank">Avoid Recompiling an MCMC</a> - How to avoid re-compiling an MCMC algorithm,when using different MCMC sampling combinations for the same model.
+
+<a href="http://danielturek.github.io/public/NIMBLE/MCMC_suite_example.html" target="_blank">MCMC Suite Example</a> - An example of using NIMBLE's MCMC Suite to run BUGS, JAGS, or different NIMBLE MCMCs.
+
+<a href="https://danielturek.github.io/nngp/analysis/index.html" target="_blank">Gaussian Process, Nearest Neighbor Gaussian Process</a> - Shows how to fit full GP and NNGP models with NIMBLE's MCMC.
+
+<a href="http://danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation.html" target="_blank">JAGS Block Sampling Adaptation</a> - Describes the algorithm underlying JAGS' block sampler adaptation scheme.
+
+<a href="http://danielturek.github.io/public/codeSubstitution/demo.html" target="_blank">Code Substitution</a> - Demonstrates how to manipulate `code` objects in R, including use of the `substitute` and `eval` functions.
+
+
+
+
+
 
