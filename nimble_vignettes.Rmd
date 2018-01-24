@@ -1,0 +1,24 @@
+---
+title: NIMBLE Vignettes
+author: Daniel Turek
+output: html_document
+---
+
+<!---
+danielturek.github.io/public/nimble_vignettes.html
+-->
+
+<!--
+<a href="URL_GOES_HERE" target="_blank">HYPERLINK_TEXT_OPENS_IN_NEW_TAB</a>
+-->
+
+\   
+
+
+<a href="http://danielturek.github.io/public/RW_record/RW_record.html" target="_blank">RW Record Sampler</a> - Writing the RW sampler so that it records (and you can access) the scale history and acceptance rate history.
+
+<a href="http://danielturek.github.io/public/restartingMCMC/restartingMCMC.html" target="_blank">Restarting NIMBLE MCMC</a> - How to continue an MCMC algorithm from where it left off, after restarting an R session.
+
+<a href="http://danielturek.github.io/public/restartingMCMC/restartingMCMC.html" target="_blank">Adding a Conjugate Sampler</a> - How to manually add a conjugate sampler to an MCMC configuration object.
+
+
