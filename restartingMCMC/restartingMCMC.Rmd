@@ -1,0 +1,432 @@
+---
+title: Restarting NIMBLE MCMC
+author: Daniel Turek
+output: html_document
+---
+
+<!---
+danielturek.github.io/public/restartingMCMC/restartingMCMC.html
+-->
+
+\    
+
+This document gives a sketch of how to restart a NIMBLE MCMC algorithm from where it left off, assuming you have to end your R session between runs.  If R didn't have to be restarted, you could simply use the `reset = FALSE` argument to the `Cmcmc$run()` method.  But if the R session must be stopped and restarted, it's a little more complicated.
+
+This approach is not covered in the <a href="https://r-nimble.org/manuals/NimbleUserManual.pdf" target="_blank">NIMBLE User Manual</a>, and requires some knowledge of the internals and implementation of NIMBLE and NIMBLE's MCMC.
+
+
+\   
+
+## Creating Model and MCMC
+
+```{r, message = FALSE}
+library(nimble)
+```
+
+Suppose you have the `code`, `constants`, `data`, and `inits`
+necessary for creating a NIMBLE `model`, for MCMC sampling.  Here's a
+simple example below of Poisson regression.
+
+Note that we'll use exactly these same `code`, `constants`, `data`, and
+`inits` after restarting R, to create new `model` and `mcmc` objects.
+
+
+
+```{r message = FALSE}
+code <- nimbleCode({
+    mu ~ dnorm(0, 0.0001)
+    sigma ~ dunif(0, 1000)
+    for(i in 1:2) {
+        beta[i] ~ dnorm(0, 0.0001)
+    }
+    for(i in 1:N) {
+        epsilon[i] ~ dnorm(mu, sd = sigma)
+        log(lambda[i]) <- beta[1] + beta[2] * x[i] + epsilon[i]
+        y[i] ~ dpois(lambda[i])
+    }
+})
+
+set.seed(0)
+N <- 5
+x <- rnorm(N, 0, 2)
+lambda <- exp(4 + .3*x)
+y <- rpois(N, lambda)
+
+constants <- list(N = N, x = x)
+data <- list(y = y)
+inits <- list(mu = 0, sigma = 1, beta = rep(0,2), epsilon = rep(0, N))
+
+Rmodel <- nimbleModel(code, constants, data, inits)
+```
+
+For good measure, run `Rmodel$calculate()` to make sure the model is
+fully initialized.
+
+```{r }
+Rmodel$calculate()
+```
+
+
+
+Now we'll create and configure the MCMC algorithm.  To make for a more
+interesting example,  demonstrating how to handle different samplers,
+we'll assign a `slice`
+sampler on `sigma`.
+
+We'll leave the
+conjugate sampler that is assigned to `mu`, and the`RW` samplers
+assigned to the `beta` and `epsilon` terms.
+
+```{r }
+conf <- configureMCMC(Rmodel)
+conf$printSamplers()
+conf$removeSamplers("sigma")
+conf$addSampler("sigma", "slice")
+conf$printSamplers()
+```
+
+That looks good.  We'll use this MCMC.
+
+Next, we'll build the MCMC, compile the model and the MCMC, and run
+the MCMC for 10,000 iterations.
+
+```{r message = FALSE}
+Rmcmc <- buildMCMC(conf)
+
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+
+set.seed(0)
+Cmcmc$run(10000)
+samples <- as.matrix(Cmcmc$mvSamples)
+```
+
+\   
+
+## What to Save
+
+Now, before ending the R session, we'll need to save several things:
+
+1. The MCMC samples we've already run.
+2. The values of all non-data stochastic nodes in the model.  That is,
+  anything in the model `code` defined using `~`, which is not
+  specified as `data`.  In this case, that's `mu`, `sigma`, `beta`, and
+  `epsilon`.
+3. The internal state variables from all the MCMC samplers.  This will
+  be the slightly tricky part, but not too difficult.
+
+\   
+
+##### Samples
+
+Straight forward, make sure to save the MCMC `samples` that you've
+already run.
+
+\   
+
+##### Model Variables
+
+For any parameters or latent variables that are being sampled in the
+model, you'll need to save the "current" values of these which are
+stored in the `Cmodel` object.  These can be accessed from the
+`Cmodel` object using the syntax `Cmodel$variableName`.
+
+I'll assume you know for your model what these are, but you can also
+look at everything that's being sampled
+using. `conf$printSamplers()`.  Another way to tell would be:
+
+```{r }
+Cmodel$getNodeNames(stochOnly = TRUE, includeData = FALSE)
+```
+
+Or even nicer:
+
+```{r }
+nodes <- Cmodel$getNodeNames(stochOnly = TRUE, includeData = FALSE)
+Cmodel$getVarNames(nodes = nodes)
+```
+
+So, we'll extract these and store them.  Let's use a
+list to hold the model variables.
+
+```{r }
+modelVariables <- list()
+
+modelVariables$mu <- Cmodel$mu
+modelVariables$sigma <- Cmodel$sigma
+modelVariables$beta <- Cmodel$beta
+modelVariables$epsilon <- Cmodel$epsilon
+```
+
+This list should now contain the values of all non-data stochastic
+variables in the model:
+
+```{r }
+modelVariables
+```
+
+You'll want to save this list `modelVariables` object.
+
+\   
+
+##### MCMC Sampler State Variables
+
+NIMBLE's MCMC samplers usually contain one or more "state variables",
+which define the state of the sampler algorithm, and are updated as
+the MCMC progresses.  You'll need to extract and save the values of
+these state variables for each sampling algorithm.
+
+We'll use an R `list` to hold the state variables.  The first element
+will itself be a list of the state variables for the first sampler.
+The second element will record the state variables from the second
+sampler, etc.
+
+```{r }
+samplerStates <- list()
+```
+
+Again, you can see how many samplers there are, and what types they
+are, using:
+
+
+```{r }
+conf$printSamplers()
+```
+
+The first sampler is a `conjugate` sampler (assigned to `mu`). 
+Conjugate samplers don't require any internal state.   So the first 
+element in our list (the state variables for the first sampler) won't 
+require anything. 
+
+To tell what the "state variables" for any other sampler are,
+your best bet is looking at the
+underlying code for each sampler, available in <a
+href="https://github.com/nimble-dev/nimble/blob/devel/packages/nimble/R/MCMC_samplers.R"
+target="_blank">MCMC_samplers.R</a>.
+
+For each sampling algorithm, for example the `RW` sampler, find
+corresponding `nimbleFunction` definition, in this case `sampler_RW`.
+Near the end of the definition there will be a `reset` method.  In
+this case, for the `RW` sampler, this looks like:
+
+```
+reset = function() {
+    scale <<- scaleOriginal 
+    timesRan      <<- 0
+    timesAccepted <<- 0
+    timesAdapted  <<- 0
+    ##scaleHistory  <<- scaleHistory * 0    ## scaleHistory
+    gamma1 <<- 0
+}
+```
+
+The "state variables" for the sampler are all the variables that are
+reset to some initial value in this function.  So in this case:
+`scale`, `timesRan`, `timesAccepted`, `timesAdapted`, and `gamma1`.  For each of these, you'll need to extract the value of this variable
+from the compiled sampler algorithm, and save it.
+
+There happen to be
+seven `RW` samplers (two for the `beta` terms, and one for each
+`epsilon`) so we'll use a loop to extract these state variables from
+each compiled sampler algorithm, and store them into the appropriate
+element of our list.  Loop over sampler numbers 2 through 8.
+
+```{r }
+for(i in 2:8) {
+    samplerStates[[i]] <- list()
+    samplerStates[[i]]$scale <- valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[i]], "scale")
+    samplerStates[[i]]$timesRan <- valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[i]], "timesRan")
+    samplerStates[[i]]$timesAccepted <- valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[i]], "timesAccepted")
+    samplerStates[[i]]$timesAdapted <- valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[i]], "timesAdapted")
+    samplerStates[[i]]$gamma1 <- valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[i]], "gamma1")
+}
+```
+
+For the 9th sampler, a `slice`sampler on `sigma`, the
+code for the `sampler_slice` `reset()` method looks like:
+
+
+```
+reset = function() {
+    width        <<- widthOriginal
+    timesRan     <<- 0
+    timesAdapted <<- 0
+    sumJumps     <<- 0
+}
+```
+
+So, we'll store these four state variables:
+
+
+```{r }
+samplerStates[[9]] <- list()
+samplerStates[[9]]$width <- valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[9]], "width")
+samplerStates[[9]]$timesRan <- valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[9]], "timesRan")
+samplerStates[[9]]$timesAdapted <- valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[9]], "timesAdapted")
+samplerStates[[9]]$sumJumps <- valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[9]], "sumJumps")
+```
+
+Now, the `samplerStates` list will also need to be saved.
+
+\   
+
+## New R Session: Restoring your MCMC
+
+Easy from here.  Say you've now restarted R, and restored the
+`samples`, `modelVariables`, and `samplerStates` objects.
+
+First, recreate your model and MCMC.  This code is exactly the same as
+above:
+
+
+```{r message = FALSE}
+library(nimble)
+
+code <- nimbleCode({
+    mu ~ dnorm(0, 0.0001)
+    sigma ~ dunif(0, 1000)
+    for(i in 1:2) {
+        beta[i] ~ dnorm(0, 0.0001)
+    }
+    for(i in 1:N) {
+        epsilon[i] ~ dnorm(mu, sd = sigma)
+        log(lambda[i]) <- beta[1] + beta[2] * x[i] + epsilon[i]
+        y[i] ~ dpois(lambda[i])
+    }
+})
+
+set.seed(0)
+N <- 5
+x <- rnorm(N, 0, 2)
+lambda <- exp(4 + .3*x)
+y <- rpois(N, lambda)
+
+constants <- list(N = N, x = x)
+data <- list(y = y)
+inits <- list(mu = 0, sigma = 1, beta = rep(0,2), epsilon = rep(0, N))
+
+Rmodel <- nimbleModel(code, constants, data, inits)
+
+Rmodel$calculate()
+
+conf <- configureMCMC(Rmodel)
+conf$removeSamplers("sigma")
+conf$addSampler("sigma", "slice")
+conf$printSamplers()
+
+Rmcmc <- buildMCMC(conf)
+
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+```
+
+\   
+
+##### Restore the model variables
+
+Restore the variable values into the `Cmodel` object, from our saved
+`modelVariables` list.
+
+The syntax is just the
+reverse of extracting them earlier.
+
+
+```{r }
+Cmodel$mu <- modelVariables$mu
+Cmodel$sigma <- modelVariables$sigma
+Cmodel$beta <- modelVariables$beta
+Cmodel$epsilon <- modelVariables$epsilon
+```
+
+\    
+
+
+##### Restore the sampler state variables
+
+Now extract the values from the `samplerStates` list, and put them into the
+`Cmcmc` sampler functions.
+
+Here, the syntax is slighly different:
+
+
+```{r eval = FALSE}
+for(i in 2:8) {
+    valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[i]], "scale", samplerStates[[i]]$scale)
+    valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[i]], "timesRan", samplerStates[[i]]$timesRan)
+    valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[i]], "timesAccepted", samplerStates[[i]]$timesAccepted)
+    valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[i]], "timesAdapted", samplerStates[[i]]$timesAdapted)
+    valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[i]], "gamma1", samplerStates[[i]]$gamma1)
+}
+
+valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[9]], "width", samplerStates[[9]]$width)
+valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[9]], "timesRan", samplerStates[[9]]$timesRan)
+valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[9]], "timesAdapted", samplerStates[[9]]$timesAdapted)
+valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[9]], "sumJumps", samplerStates[[9]]$sumJumps)
+```
+
+This has now restored the "state" into the MCMC sampler
+algorithms.
+
+\   
+
+## Continue Running MCMC
+
+You can now continue running the `Cmcmc` algorithm, and it will
+effectively "pick up where it left off".
+
+Just make sure to use the
+`reset = FALSE` argument, so it doesn't reset all the samplers back to
+their initial states.
+
+
+```{r }
+set.seed(0)
+Cmcmc$run(10000, reset = FALSE)
+samples_continued <- as.matrix(Cmcmc$mvSamples)
+```
+
+\   
+
+Let me know if anything here is unclear.
+
+Good luck!
+
+Daniel
+
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+
+
+
+
+
+
+
+
+
+
+
+
