@@ -270,6 +270,17 @@ Now, the `samplerStates` list will also need to be saved.
 
 \   
 
+
+```{r }
+fileName <- '~/temp/restartMCMC.RData'
+save(samples, modelVariables, samplerStates, file = fileName)
+```
+
+
+
+\   
+
+
 ## New R Session: Restoring your MCMC
 
 Easy from here.  Say you've now restarted R, and restored the
@@ -320,12 +331,22 @@ Cmodel <- compileNimble(Rmodel)
 Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
 ```
 
+Then load our saved file:
+
+```{r }
+load(fileName)
+```
+
 \   
 
 ##### Restore the model variables
 
 Restore the variable values into the `Cmodel` object, from our saved
 `modelVariables` list.
+
+
+
+
 
 The syntax is just the
 reverse of extracting them earlier.
@@ -336,6 +357,25 @@ Cmodel$mu <- modelVariables$mu
 Cmodel$sigma <- modelVariables$sigma
 Cmodel$beta <- modelVariables$beta
 Cmodel$epsilon <- modelVariables$epsilon
+```
+
+The following code block is new. A few things were overlooked before, since the
+`reset = FALSE` option was designed to continue running an MCMC that had
+already been run.   The specific issues are pretty technical,
+but have to do with the `mvSaved` and `mvSamples` data
+structures internal to the `Cmcmc` algorithm, and initializing those
+datastructures correctly.
+
+These lines take care of it:
+
+```{r }
+Cmodel$calculate()
+
+for(name in names(Cmcmc$mvSaved$sizes)) {
+    Cmcmc$mvSaved[[name]] <- Cmodel[[name]]
+}
+
+resize(Cmcmc$mvSamples, 0)
 ```
 
 \    
@@ -383,6 +423,8 @@ their initial states.
 set.seed(0)
 Cmcmc$run(10000, reset = FALSE)
 samples_continued <- as.matrix(Cmcmc$mvSamples)
+
+head(samples_continued)
 ```
 
 \   

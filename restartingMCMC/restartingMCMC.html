@@ -301,6 +301,9 @@ samplerStates[[9]]$timesAdapted &lt;- valueInCompiledNimbleFunction(Cmcmc$sample
 samplerStates[[9]]$sumJumps &lt;- valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[9]], &quot;sumJumps&quot;)</code></pre>
 <p>Now, the <code>samplerStates</code> list will also need to be saved.</p>
 <p> </p>
+<pre class="r"><code>fileName &lt;- '~/temp/restartMCMC.RData'
+save(samples, modelVariables, samplerStates, file = fileName)</code></pre>
+<p> </p>
 </div>
 </div>
 <div id="new-r-session-restoring-your-mcmc" class="section level2">
@@ -353,6 +356,8 @@ conf$printSamplers()</code></pre>
 
 Cmodel &lt;- compileNimble(Rmodel)
 Cmcmc &lt;- compileNimble(Rmcmc, project = Rmodel)</code></pre>
+<p>Then load our saved file:</p>
+<pre class="r"><code>load(fileName)</code></pre>
 <p> </p>
 <div id="restore-the-model-variables" class="section level5">
 <h5>Restore the model variables</h5>
@@ -362,6 +367,15 @@ Cmcmc &lt;- compileNimble(Rmcmc, project = Rmodel)</code></pre>
 Cmodel$sigma &lt;- modelVariables$sigma
 Cmodel$beta &lt;- modelVariables$beta
 Cmodel$epsilon &lt;- modelVariables$epsilon</code></pre>
+<p>The following code block is new. A few things were overlooked before, since the <code>reset = FALSE</code> option was designed to continue running an MCMC that had already been run. The specific issues are pretty technical, but have to do with the <code>mvSaved</code> and <code>mvSamples</code> data structures internal to the <code>Cmcmc</code> algorithm, and initializing those datastructures correctly.</p>
+<p>These lines take care of it:</p>
+<pre class="r"><code>Cmodel$calculate()</code></pre>
+<pre><code>## [1] -34.02553</code></pre>
+<pre class="r"><code>for(name in names(Cmcmc$mvSaved$sizes)) {
+    Cmcmc$mvSaved[[name]] &lt;- Cmodel[[name]]
+}
+
+resize(Cmcmc$mvSamples, 0)</code></pre>
 <p> </p>
 </div>
 <div id="restore-the-sampler-state-variables" class="section level5">
@@ -393,7 +407,16 @@ Cmcmc$run(10000, reset = FALSE)</code></pre>
 <pre><code>## |-------------|-------------|-------------|-------------|
 ## |-------------------------------------------------------|</code></pre>
 <pre><code>## NULL</code></pre>
-<pre class="r"><code>samples_continued &lt;- as.matrix(Cmcmc$mvSamples)</code></pre>
+<pre class="r"><code>samples_continued &lt;- as.matrix(Cmcmc$mvSamples)
+
+head(samples_continued)</code></pre>
+<pre><code>##       beta[1]   beta[2]       mu      sigma
+## [1,] 1.381995 0.2780219 2.751533 0.07820431
+## [2,] 1.337061 0.2618317 2.760986 0.06111864
+## [3,] 1.337061 0.2618317 2.708573 0.05853311
+## [4,] 1.337061 0.2618317 2.680708 0.05229369
+## [5,] 1.326016 0.2618317 2.730032 0.04987856
+## [6,] 1.326016 0.2618317 2.731975 0.07476878</code></pre>
 <p> </p>
 <p>Let me know if anything here is unclear.</p>
 <p>Good luck!</p>
