@@ -1,6 +1,7 @@
 ---
 title: Recording scale history and acceptance rate history
 author: Daniel Turek
+date: 17 January 2017
 output: html_document
 ---
 
