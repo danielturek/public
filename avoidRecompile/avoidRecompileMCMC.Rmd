@@ -2,6 +2,7 @@
 ---
 title: Avoid recompiling models and MCMCs
 author: Daniel Turek
+date: 20 September 2016
 output: html_document
 ---
 
