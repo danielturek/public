@@ -19,7 +19,7 @@ danielturek.github.io/public/nimble_vignettes.html
 
 <a href="http://danielturek.github.io/public/restartingMCMC/restartingMCMC.html" target="_blank">Restarting NIMBLE MCMC</a> - How to continue an MCMC algorithm from where it left off, after restarting an R session.
 
-<a href="http://danielturek.github.io/public/restartingMCMC/restartingMCMC.html" target="_blank">Adding a Conjugate Sampler</a> - How to manually add a conjugate sampler to an MCMC configuration object.
+<a href="http://danielturek.github.io/public/addSamplerConjugate/addSamplerConjugate.html" target="_blank">Adding a Conjugate Sampler</a> - How to manually add a conjugate sampler to an MCMC configuration object.
 
 <a href="http://danielturek.github.io/public/avoidRecompile/avoidRecompileMCMC.html" target="_blank">Avoid Recompiling an MCMC</a> - How to avoid re-compiling an MCMC algorithm,when using different MCMC sampling combinations for the same model.
 
