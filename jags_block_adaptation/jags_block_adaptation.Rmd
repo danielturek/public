@@ -9,6 +9,8 @@ output: html_document
 danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation.html
 -->
 
+Back to [NIMBLE Vignettes](https://danielturek.github.io/public/nimble_vignettes.html)
+
 \  
 
 ### Background
