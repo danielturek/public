@@ -8,7 +8,8 @@ output: html_document
 <!---
 danielturek.github.io/public/folder/fileName.html
 -->
-\  
+
+Back to [NIMBLE Vignettes](https://danielturek.github.io/public/nimble_vignettes.html)
 
 \  
 

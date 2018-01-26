@@ -9,6 +9,8 @@ output: html_document
 danielturek.github.io/public/restartingMCMC/restartingMCMC.html
 -->
 
+Back to [NIMBLE Vignettes](https://danielturek.github.io/public/nimble_vignettes.html)
+
 \    
 
 This document gives a sketch of how to restart a NIMBLE MCMC algorithm from where it left off, assuming you have to end your R session between runs.  If R didn't have to be restarted, you could simply use the `reset = FALSE` argument to the `Cmcmc$run()` method.  But if the R session must be stopped and restarted, it's a little more complicated.

@@ -11,11 +11,13 @@ output: html_document
 danielturek.github.io/public/folder/fileName.Rmd
 -->
 
+Back to [NIMBLE Vignettes](https://danielturek.github.io/public/nimble_vignettes.html)
 
-It turns out there's already a function (already on devel, Chris!)
-that handles this for you.
+\   
 
-If you can believe it, it's called `addConjugateSampler()`.
+It turns out there's already a function that handles adding conjugate samplers.  
+
+It's called `addConjugateSampler()`.
 
 ```{r, message = FALSE}
 library(nimble)
