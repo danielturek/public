@@ -10,6 +10,8 @@ output: html_document
 danielturek.github.io/public/folder/fileName.Rmd
 -->
 
+Back to [NIMBLE Vignettes](https://danielturek.github.io/public/nimble_vignettes.html)
+
 \
 
 This demonstrates the procedure to avoid recompiling models and MCMC

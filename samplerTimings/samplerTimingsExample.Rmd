@@ -6,6 +6,8 @@ date: 11 July 2016
 output: html_document
 ---
 
+Back to [NIMBLE Vignettes](https://danielturek.github.io/public/nimble_vignettes.html)
+
 ```{r, message = FALSE}
 library(nimble)
 ```

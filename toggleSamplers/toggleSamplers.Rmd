@@ -9,6 +9,8 @@ output: html_document
 danielturek.github.io/public/folder/fileName.html
 -->
 
+Back to [NIMBLE Vignettes](https://danielturek.github.io/public/nimble_vignettes.html)
+
 This will demonstrate how to toggle MCMC samplers on/off.  It's a fairly custom approach, not really intended for mainstream use, but the techniques could be refined.  In any case, it should get you going.
  
 I would be happy to be kept in the loop regarding this research, and
