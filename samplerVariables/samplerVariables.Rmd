@@ -1,6 +1,7 @@
 ---
 title: Recording and setting sampler variables
 author: Daniel Turek
+date: 31 January 2017
 output: html_document
 ---
 

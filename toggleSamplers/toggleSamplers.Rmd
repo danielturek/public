@@ -1,6 +1,7 @@
 ---
 title: Toggle MCMC Samplers
 author: Daniel Turek
+date: 7 February 2017
 output: html_document
 ---
 

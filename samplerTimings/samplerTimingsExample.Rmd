@@ -2,6 +2,7 @@
 ---
 title: Example of Sampler Timings
 author: Daniel Turek
+date: 11 July 2016
 output: html_document
 ---
 
