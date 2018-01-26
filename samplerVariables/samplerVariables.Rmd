@@ -9,6 +9,7 @@ output: html_document
 danielturek.github.io/public/samplerVariables/samplerVariables.html
 -->
 
+Back to [NIMBLE Vignettes](https://danielturek.github.io/public/nimble_vignettes.html)
 
 Load NIMBLE, set the option `buildInterfacesForCompiledNestedNimbleFunctions`.
 
