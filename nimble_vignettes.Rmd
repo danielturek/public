@@ -1,5 +1,5 @@
 ---
-title: NIMBLE Vignettes
+title: NIMBLE MCMC Vignettes
 author: Daniel Turek
 output: html_document
 ---
@@ -38,4 +38,16 @@ danielturek.github.io/public/nimble_vignettes.html
 <a href="http://danielturek.github.io/public/samplerVariables/samplerVariables.html" target="_blank">Sampler State Variables</a> - How to extract and set the "state" variables, stored internally in MCMC sampling algorithms.
 
 <a href="http://danielturek.github.io/public/toggleSamplers/toggleSamplers.html" target="_blank">Toggling MCMC Samplers On/Off</a> - How to modify MCMC samplers so they can be toggled on or off for different MCMC runs or datasets.
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
 

@@ -1,0 +1,158 @@
+---
+title: Performance Comparison of Langevin Samplers
+author: Daniel Turek
+output: html_document
+---
+
+<!---
+danielturek.github.io/public/langevinComparison/langevinComparison.html
+[TEXT](URL)
+<a href="URL_GOES_HERE" target="_blank">HYPERLINK_TEXT_OPENS_IN_NEW_TAB</a>
+-->
+
+Build and install NIMBLE package on branch `hmcAD`.
+
+
+```{r, message = EVAL}
+remove.packages('nimble')
+library(devtools)
+install_github('nimble-dev/nimble', ref = 'hmcAD', subdir = 'packages/nimble')
+library(nimble)
+nimbleOptions(experimentalEnableDerivs = TRUE)
+```
+
+\   
+
+## Rats model
+
+Langevin sampling compared with the fully conjugate `rats` model:
+
+
+```{r }
+
+
+## TESTING COMPILE OF langevin samplers MCMC
+modelInfo <- readBUGSmodel('rats', dir = getBUGSexampleDir('rats'), returnComponents = TRUE)
+code <- modelInfo$code
+constants <- modelInfo$data[c('x', 'N', 'T')]
+data <- modelInfo$data['Y']
+inits <- modelInfo$inits
+dims <- modelInfo$dims
+ 
+Rmodel <- nimbleModel(code, constants, data, inits, dimensions = dims)
+Rmodel$calculate()
+conf <- configureMCMC(Rmodel, nodes = NULL)
+conf$printSamplers()
+for(nn in Rmodel$getNodeNames(stochOnly = TRUE, includeData = FALSE)) {
+    conf$addSampler(nn, 'langevin')
+}
+conf$printSamplers()
+Rmcmc <- buildMCMC(conf)
+
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+
+Cmcmc$run(1000)
+
+
+## WORK STARTS HERE
+modelInfo <- readBUGSmodel('rats', dir = getBUGSexampleDir('rats'), returnComponents = TRUE)
+
+outList <- list()
+niter <- 10000
+
+name <- 'conjugate'
+out <- compareMCMCs(modelInfo = modelInfo, MCMCs = 'nimble', niter = niter)[[1]]
+out <- rename_MCMC_comparison_method('nimble', name, out)
+outList[[name]] <- out
+
+
+name <- 'langevin'
+
+out <- compareMCMCs(modelInfo = modelInfo, MCMCs = 'langevin', niter = niter,
+                    MCMCdefs = list(langevin = quote({
+                        conf <- configureMCMC(Rmodel, nodes = NULL)
+                        for(nn in Rmodel$getNodeNames(stochOnly = TRUE, includeData = FALSE)) conf$addSampler(nn, 'langevin')
+                        conf$printSamplers()
+                        return(conf)})))[[1]]
+
+out
+
+out <- rename_MCMC_comparison_method('nimble', name, out)
+outList[[name]] <- out
+
+
+
+
+
+
+runComparison <- function(modelInfoFile, reduced, name, MCMCs, niter, MCMCdefs = list(), add = FALSE, saveFile, verbose = TRUE) {
+    if(length(MCMCs) > 1) stop('only one MCMC at a time, please')
+    if(verbose) message(paste0('running ', name, ' on ', modelInfoFile, '...'))
+    modelInfoFileToLoad <- modelInfoFile
+    if(reduced) modelInfoFileToLoad <- paste0(modelInfoFileToLoad, '_reduced')
+    modelInfoFileToLoad <- paste0('data/modelInfo_', modelInfoFileToLoad, '.RData')
+    load(modelInfoFileToLoad)
+    outList <- if(add) dget(saveFile) else list()
+    out <- compareMCMCs(modelInfo = modelInfo, MCMCs = MCMCs, MCMCdefs = MCMCdefs,
+                        monitors = modelInfo$monitors, niter = niter)[[1]]
+    out <- rename_MCMC_comparison_method(MCMCs, name, out)
+    outList[[name]] <- out
+    if(!missing(saveFile)) dput(outList, file = saveFile)
+    if(verbose) message(paste0('finished running ', name, ' on ', modelInfoFile))
+    return(invisible(outList))
+}
+
+makePages <- function(saveFile, dir, open = TRUE) {
+    outList <- dget(saveFile)
+    results <- do.call(combine_MCMC_comparison_results, unname(outList))
+    pagesDir <- paste0('pages/', dir, '/')
+    make_MCMC_comparison_pages(results, dir = pagesDir, pageComponents = list(timing = TRUE, efficiencySummary = FALSE, efficiencySummaryAllParams = TRUE, paceSummaryAllParams = TRUE, efficiencyDetails = TRUE, posteriorSummary = TRUE))
+    if(open) system(paste0('open ', pagesDir, 'MCMCresults.html'))
+}
+
+
+
+
+conf <- configureMCMC(Rmodel)
+conf$printSamplers()
+Rmcmc <- buildMCMC(conf)
+
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+
+set.seed(0)
+samples <- runMCMC(Cmcmc, 10000)
+##Cmcmc$run(10000)
+##samples <- as.matrix(Cmcmc$mvSamples)
+
+colnames(samples)
+apply(samples, 2, mean)
+
+samplesPlot(samples)
+
+library(coda)
+apply(samples, 2, effectiveSize)
+
+
+nfDef <- nimbleFunction(
+    setup = function() {},
+    run = function() {
+        
+    }
+)
+
+Rnf <- nfDef()
+Cnf <- compileNimble(Rnf)#, showCompilerOutput = TRUE)
+
+Rnf$run()
+Cnf$run()
+
+
+
+```
+
+
+
+
+
