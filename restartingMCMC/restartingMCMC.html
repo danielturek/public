@@ -119,23 +119,26 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">Restarting NIMBLE MCMC</h1>
 <h4 class="author"><em>Daniel Turek</em></h4>
-<h4 class="date"><em>23 January 2018</em></h4>  
+<h4 class="date"><em>23 January 2018</em></h4>
 
 </div>
 
-<p>Back to <a href="https://danielturek.github.io/public/nimble_vignettes.html">NIMBLE Vignettes</a></p>
-<p> </p>
 
 <!---
 danielturek.github.io/public/restartingMCMC/restartingMCMC.html
 -->
+<p>Back to <a href="https://danielturek.github.io/public/nimble_vignettes.html">NIMBLE Vignettes</a></p>
 <p> </p>
 <p>This document gives a sketch of how to restart a NIMBLE MCMC algorithm from where it left off, assuming you have to end your R session between runs. If R didn’t have to be restarted, you could simply use the <code>reset = FALSE</code> argument to the <code>Cmcmc$run()</code> method. But if the R session must be stopped and restarted, it’s a little more complicated.</p>
 <p>This approach is not covered in the <a href="https://r-nimble.org/manuals/NimbleUserManual.pdf" target="_blank">NIMBLE User Manual</a>, and requires some knowledge of the internals and implementation of NIMBLE and NIMBLE’s MCMC.</p>
 <p> </p>
 <div id="creating-model-and-mcmc" class="section level2">
 <h2>Creating Model and MCMC</h2>
-<pre class="r"><code>library(nimble)</code></pre>
+<pre class="r"><code>###########################
+### Start new R session ###
+###########################
+
+library(nimble)</code></pre>
 <p>Suppose you have the <code>code</code>, <code>constants</code>, <code>data</code>, and <code>inits</code> necessary for creating a NIMBLE <code>model</code>, for MCMC sampling. Here’s a simple example below of Poisson regression.</p>
 <p>Note that we’ll use exactly these same <code>code</code>, <code>constants</code>, <code>data</code>, and <code>inits</code> after restarting R, to create new <code>model</code> and <code>mcmc</code> objects.</p>
 <pre class="r"><code>code &lt;- nimbleCode({
@@ -212,6 +215,7 @@ Cmcmc$run(10000)</code></pre>
 <li>The MCMC samples we’ve already run.</li>
 <li>The values of all non-data stochastic nodes in the model. That is, anything in the model <code>code</code> defined using <code>~</code>, which is not specified as <code>data</code>. In this case, that’s <code>mu</code>, <code>sigma</code>, <code>beta</code>, and <code>epsilon</code>.</li>
 <li>The internal state variables from all the MCMC samplers. This will be the slightly tricky part, but not too difficult.</li>
+<li>R’s random number seed.</li>
 </ol>
 <p> </p>
 <div id="samples" class="section level5">
@@ -305,8 +309,15 @@ samplerStates[[9]]$timesAdapted &lt;- valueInCompiledNimbleFunction(Cmcmc$sample
 samplerStates[[9]]$sumJumps &lt;- valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[9]], &quot;sumJumps&quot;)</code></pre>
 <p>Now, the <code>samplerStates</code> list will also need to be saved.</p>
 <p> </p>
+</div>
+<div id="rs-random-number-seed" class="section level5">
+<h5>R’s random number seed</h5>
+<p>We’ll also save the current value of R’s random number generation seed, so we can pick up the MCMC sampling precisely as it would have continued, had we actually kept running the MCMC chain now.</p>
+<pre class="r"><code>seed &lt;- .Random.seed</code></pre>
+<p> </p>
+<p>Now, save all these to a file.</p>
 <pre class="r"><code>fileName &lt;- '~/temp/restartMCMC.RData'
-save(samples, modelVariables, samplerStates, file = fileName)</code></pre>
+save(samples, modelVariables, samplerStates, seed, file = fileName)</code></pre>
 <p> </p>
 </div>
 </div>
@@ -314,7 +325,11 @@ save(samples, modelVariables, samplerStates, file = fileName)</code></pre>
 <h2>New R Session: Restoring your MCMC</h2>
 <p>Easy from here. Say you’ve now restarted R, and restored the <code>samples</code>, <code>modelVariables</code>, and <code>samplerStates</code> objects.</p>
 <p>First, recreate your model and MCMC. This code is exactly the same as above:</p>
-<pre class="r"><code>library(nimble)
+<pre class="r"><code>###########################
+### Start new R session ###
+###########################
+
+library(nimble)
 
 code &lt;- nimbleCode({
     mu ~ dnorm(0, 0.0001)
@@ -361,7 +376,8 @@ conf$printSamplers()</code></pre>
 Cmodel &lt;- compileNimble(Rmodel)
 Cmcmc &lt;- compileNimble(Rmcmc, project = Rmodel)</code></pre>
 <p>Then load our saved file:</p>
-<pre class="r"><code>load(fileName)</code></pre>
+<pre class="r"><code>fileName &lt;- '~/temp/restartMCMC.RData'
+load(fileName)</code></pre>
 <p> </p>
 <div id="restore-the-model-variables" class="section level5">
 <h5>Restore the model variables</h5>
@@ -401,27 +417,119 @@ valueInCompiledNimbleFunction(Cmcmc$samplerFunctions[[9]], &quot;sumJumps&quot;,
 <p>This has now restored the “state” into the MCMC sampler algorithms.</p>
 <p> </p>
 </div>
+<div id="restore-the-sampler-state-variables-1" class="section level5">
+<h5>Restore the sampler state variables</h5>
+<p>And, we’ll restore R’s random number generation seed to where it left off.</p>
+<pre class="r"><code>.Random.seed &lt;- seed</code></pre>
+<p> </p>
+</div>
 </div>
 <div id="continue-running-mcmc" class="section level2">
 <h2>Continue Running MCMC</h2>
 <p>You can now continue running the <code>Cmcmc</code> algorithm, and it will effectively “pick up where it left off”.</p>
 <p>Just make sure to use the <code>reset = FALSE</code> argument, so it doesn’t reset all the samplers back to their initial states.</p>
-<pre class="r"><code>set.seed(0)
-Cmcmc$run(10000, reset = FALSE)</code></pre>
+<pre class="r"><code>Cmcmc$run(10000, reset = FALSE)</code></pre>
 <pre><code>## |-------------|-------------|-------------|-------------|
 ## |-------------------------------------------------------|</code></pre>
 <pre><code>## NULL</code></pre>
-<pre class="r"><code>samples_continued &lt;- as.matrix(Cmcmc$mvSamples)
-
-head(samples_continued)</code></pre>
-<pre><code>##       beta[1]   beta[2]       mu      sigma
-## [1,] 1.381995 0.2780219 2.751533 0.07820431
-## [2,] 1.337061 0.2618317 2.760986 0.06111864
-## [3,] 1.337061 0.2618317 2.708573 0.05853311
-## [4,] 1.337061 0.2618317 2.680708 0.05229369
-## [5,] 1.326016 0.2618317 2.730032 0.04987856
-## [6,] 1.326016 0.2618317 2.731975 0.07476878</code></pre>
+<pre class="r"><code>samples_continued &lt;- as.matrix(Cmcmc$mvSamples)</code></pre>
+<p>Let’s look at the samples from the first run, and from the second.</p>
+<pre class="r"><code>samples_all &lt;- rbind(samples, samples_continued)
+dim(samples_all)</code></pre>
+<pre><code>## [1] 20000     4</code></pre>
+<pre class="r"><code>samples_all[9995:10005,]</code></pre>
+<pre><code>##        beta[1]   beta[2]       mu      sigma
+##  [1,] 1.394315 0.2578996 2.709307 0.03237251
+##  [2,] 1.399039 0.2502140 2.724426 0.05516978
+##  [3,] 1.400995 0.2494896 2.728632 0.03437194
+##  [4,] 1.400995 0.2494896 2.719170 0.03925602
+##  [5,] 1.381995 0.2288096 2.741263 0.05120657
+##  [6,] 1.381995 0.2780219 2.716613 0.05292085
+##  [7,] 1.381995 0.2220797 2.700665 0.04997873
+##  [8,] 1.381995 0.2433144 2.690273 0.08012158
+##  [9,] 1.381995 0.2410102 2.669353 0.07388723
+## [10,] 1.381995 0.2388559 2.696224 0.04560240
+## [11,] 1.331974 0.2388559 2.694611 0.03243129</code></pre>
 <p> </p>
+</div>
+<div id="verify-this-is-the-same-as-one-long-run" class="section level2">
+<h2>Verify this is the same as one long run</h2>
+<p>We’ll double-check these samples are precisely the same, as though we’d done one single long (un-interupted) run of the MCMC.</p>
+<p>The code below is entirely copied from code above.</p>
+<pre class="r"><code>###########################
+### Start new R session ###
+###########################
+
+library(nimble)
+
+code &lt;- nimbleCode({
+    mu ~ dnorm(0, 0.0001)
+    sigma ~ dunif(0, 1000)
+    for(i in 1:2) {
+        beta[i] ~ dnorm(0, 0.0001)
+    }
+    for(i in 1:N) {
+        epsilon[i] ~ dnorm(mu, sd = sigma)
+        log(lambda[i]) &lt;- beta[1] + beta[2] * x[i] + epsilon[i]
+        y[i] ~ dpois(lambda[i])
+    }
+})
+
+set.seed(0)
+N &lt;- 5
+x &lt;- rnorm(N, 0, 2)
+lambda &lt;- exp(4 + .3*x)
+y &lt;- rpois(N, lambda)
+
+constants &lt;- list(N = N, x = x)
+data &lt;- list(y = y)
+inits &lt;- list(mu = 0, sigma = 1, beta = rep(0,2), epsilon = rep(0, N))
+
+Rmodel &lt;- nimbleModel(code, constants, data, inits)
+
+Rmodel$calculate()</code></pre>
+<pre><code>## [1] -1724.11</code></pre>
+<pre class="r"><code>conf &lt;- configureMCMC(Rmodel)
+conf$removeSamplers(&quot;sigma&quot;)
+conf$addSampler(&quot;sigma&quot;, &quot;slice&quot;)
+conf$printSamplers()</code></pre>
+<pre><code>## [1] conjugate_dnorm_dnorm sampler: mu
+## [2] RW sampler: beta[1]
+## [3] RW sampler: beta[2]
+## [4] RW sampler: epsilon[1]
+## [5] RW sampler: epsilon[2]
+## [6] RW sampler: epsilon[3]
+## [7] RW sampler: epsilon[4]
+## [8] RW sampler: epsilon[5]
+## [9] slice sampler: sigma</code></pre>
+<pre class="r"><code>Rmcmc &lt;- buildMCMC(conf)
+
+Cmodel &lt;- compileNimble(Rmodel)
+Cmcmc &lt;- compileNimble(Rmcmc, project = Rmodel)
+
+set.seed(0)
+Cmcmc$run(20000)</code></pre>
+<pre><code>## |-------------|-------------|-------------|-------------|
+## |-------------------------------------------------------|</code></pre>
+<pre><code>## NULL</code></pre>
+<pre class="r"><code>samples_all &lt;- as.matrix(Cmcmc$mvSamples)
+dim(samples_all)</code></pre>
+<pre><code>## [1] 20000     4</code></pre>
+<pre class="r"><code>samples_all[9995:10005,]</code></pre>
+<pre><code>##        beta[1]   beta[2]       mu      sigma
+##  [1,] 1.394315 0.2578996 2.709307 0.03237251
+##  [2,] 1.399039 0.2502140 2.724426 0.05516978
+##  [3,] 1.400995 0.2494896 2.728632 0.03437194
+##  [4,] 1.400995 0.2494896 2.719170 0.03925602
+##  [5,] 1.381995 0.2288096 2.741263 0.05120657
+##  [6,] 1.381995 0.2780219 2.716613 0.05292085
+##  [7,] 1.381995 0.2220797 2.700665 0.04997873
+##  [8,] 1.381995 0.2433144 2.690273 0.08012158
+##  [9,] 1.381995 0.2410102 2.669353 0.07388723
+## [10,] 1.381995 0.2388559 2.696224 0.04560240
+## [11,] 1.331974 0.2388559 2.694611 0.03243129</code></pre>
+<p> </p>
+<p>The results look good.</p>
 <p>Let me know if anything here is unclear.</p>
 <p>Good luck!</p>
 <p>Daniel</p>
