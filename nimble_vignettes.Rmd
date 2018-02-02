@@ -53,6 +53,10 @@ danielturek.github.io/public/nimble_vignettes.html
 
 <a href="http://danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation.html" target="_blank">JAGS Block Sampling Adaptation</a> - Describes the algorithm underlying JAGS' block sampler adaptation scheme.
 
+<a href="https://nature.berkeley.edu/~pdevalpine/SCR_NIMBLE_ideas/SCR_NIMBLE_ideas.html" target="_blank">Spatial Capture-Recapture Ideas</a> - Exploring methods for improving sampling efficiency of spatially-explicit spatial capture-recapture (SCR) models using NIMBLE.
+
+
+
 
 \   
 
