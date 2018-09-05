@@ -1,0 +1,330 @@
+---
+title: HMC Comparisons on Election88 Model
+author: Daniel Turek
+output: html_document
+---
+
+
+\    
+
+```{r, message = FALSE}
+library(nimble)
+library(coda)
+library(basicMCMCplots)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+nimbleOptions(experimentalEnableDerivs = TRUE)
+```
+
+
+
+
+```{r }
+##m <- 1
+##m <- 10
+m <- 20
+
+iter_default <- 10000 * m
+iter_HMC_top <- 200   * m
+iter_HMC_all <- 200   * m
+iter_jags    <- 2000  * m
+
+samplesList <- list()
+timeList <- list()
+
+load('election88_clean/data_setup_from_stan_github/data_setup_from_stan_github.RData')
+election.inits <- list(b.0=rnorm(1), b.female=rnorm(1), b.black=rnorm(1),
+                       b.female.black=rnorm(1),
+                       b.age=rnorm(n.age), b.edu=rnorm(n.edu),
+                       b.age.edu=array(rnorm(n.age*n.edu),
+                           c(n.age,n.edu)), b.state=rnorm(n.state), b.v.prev=rnorm(1), 
+                       b.region=rnorm(n.region), sigma.age=runif(1),
+                       sigma.edu=runif(1), sigma.age.edu=runif(1),
+                       sigma.state=runif(1), sigma.region=runif(1))
+election88_BUGS <- readBUGSmodel("17.4_Bugs_codes.bug", dir = 'election88_clean/models', returnComponents = TRUE)
+BUGSdataList.1 <- dataList.1
+names(BUGSdataList.1) <- tolower( gsub("_",".",names(BUGSdataList.1)))
+election88_BUGS$data <- BUGSdataList.1
+election88_BUGS$inits <- election.inits
+code <- election88_BUGS$code
+yInd <- which(names(election88_BUGS$data) == 'y')
+constants <- election88_BUGS$data[-yInd]
+data <- election88_BUGS$data[yInd]
+inits <- election88_BUGS$inits
+
+Rmodel <- nimbleModel(code, constants, data, inits)
+conf <- configureMCMC(Rmodel)
+conf$printSamplers()
+
+Rmcmc <- buildMCMC(conf)
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+
+set.seed(0)
+time <- system.time(samples <- runMCMC(Cmcmc, iter_default))[3]
+time
+
+name <- 'default'
+timeList[[name]] <- as.numeric(time)
+samplesList[[name]] <- samples
+
+
+Rmodel <- nimbleModel(code, constants, data, inits)
+params <- Rmodel$getNodeNames(topOnly = TRUE, stochOnly = TRUE)
+params
+conf <- configureMCMC(Rmodel)
+conf$removeSamplers(params)
+conf$addSampler(params, 'HMC')
+conf$printSamplers()
+
+Rmcmc <- buildMCMC(conf)
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+
+set.seed(0)
+time <- system.time(samples <- runMCMC(Cmcmc, iter_HMC_top))[3]
+time
+
+name <- 'HMC_top'
+timeList[[name]] <- as.numeric(time)
+samplesList[[name]] <- samples
+
+
+Rmodel <- nimbleModel(code, constants, data, inits)
+params <- Rmodel$getNodeNames(stochOnly = TRUE, includeData = FALSE)
+params
+conf <- configureMCMC(Rmodel, nodes = NULL)
+conf$addSampler(params, 'HMC')
+conf$printSamplers()
+
+Rmcmc <- buildMCMC(conf)
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+
+set.seed(0)
+time <- system.time(samples <- runMCMC(Cmcmc, iter_HMC_all))[3]
+time
+
+name <- 'HMC_all'
+timeList[[name]] <- as.numeric(time)
+samplesList[[name]] <- samples
+
+
+monitorVars <- c('b.0', 'b.black', 'b.female', 'b.female.black', 'b.v.prev', 'sigma.age', 'sigma.age.edu', 'sigma.edu', 'sigma.region', 'sigma.state')
+
+constsAndData <- c(constants, data)
+modelfile <- file.path(tempdir(), 'model.txt')
+writeLines(paste0('model\n', paste0(deparse(code, width.cutoff=500L), collapse='\n')), con=modelfile)
+
+library(rjags)
+set.seed(0)
+jags_mod <- jags.model(file=modelfile, data=constsAndData, inits=inits, n.chains=1, quiet=FALSE)
+set.seed(0)
+time <- system.time(jags_out <- coda.samples(model=jags_mod, variable.names=monitorVars, n.iter=iter_jags, thin=1))[3]
+time
+
+name <- 'jags'
+timeList[[name]] <- as.numeric(time)
+samplesList[[name]] <- as.matrix(jags_out[[1]])
+```
+
+\   
+
+#### Runtime 
+
+\   
+
+```{r }
+sapply(timeList, function(t) t/60/60)   ## runtime in hours
+```
+
+\   
+
+#### Posterior Distribution
+
+\   
+
+```{r out.width = "1000px"}
+chainsPlot(samplesList, nrow = 2, jitter = 0.5, buffer.right = 1, cex = 0.8)
+```
+
+\   
+
+#### Efficiency
+
+\   
+
+```{r }
+essList <- lapply(samplesList, function(samples) apply(samples, 2, effectiveSize))
+essList
+
+effDF <- as.data.frame(mapply(function(ess, time) ess/time, essList, timeList))
+effDF$param <- rownames(effDF)
+effDF
+
+
+effDF %>% tidyr::gather('MCMC', 'efficiency', 1:4) -> df
+
+df %>% dplyr::filter(param %in% c('b.0', 'b.v.prev')) %>% 
+    ggplot(aes(param, efficiency, fill=MCMC)) + geom_bar(stat = 'identity', position = 'dodge')
+
+df %>% dplyr::filter(param %in% c('b.black', 'b.female', 'b.female.black')) %>% 
+    ggplot(aes(param, efficiency, fill=MCMC)) + geom_bar(stat = 'identity', position = 'dodge')
+
+df %>% dplyr::filter(grepl('^sigma.', param)) %>% 
+    ggplot(aes(param, efficiency, fill=MCMC)) + geom_bar(stat = 'identity', position = 'dodge')
+
+```
+
+```{r eval = FALSE, echo = FALSE}
+library(rstan)
+rstan_options(auto_write = TRUE)
+
+schools_dat <- list(J = 8, 
+                    y = c(28,  8, -3,  7, -1,  1, 18, 12),
+                    sigma = c(15, 10, 16, 11,  9, 11, 10, 18))
+
+fit <- stan(file = '~/temp/school.stan', data = schools_dat, iter = 1000, chains = 1)
+
+
+test_model = stan_model(
+    model_code = "data {
+  int<lower=0> J; 
+  real y[J];           
+  real<lower=0> sigma[J];  
+}
+parameters {
+  real mu; 
+  real<lower=0> tau;
+  vector[J] eta;
+}
+transformed parameters {
+  vector[J] theta;
+  theta = mu + tau * eta;
+}
+model {
+  target += normal_lpdf(eta | 0, 1);
+  target += normal_lpdf(y | theta, sigma);
+}"
+)
+
+
+test_model = rstan::stan_model(
+    model_code = "data {
+      int nrow;
+      int ncol;
+      int nmatrices;
+    }
+    generated quantities {
+      matrix[nrow, ncol] testobject[nmatrices];
+      for (i in 1:nmatrices) {
+        testobject[i] = rep_matrix(0.0 + i, nrow, ncol);
+      }
+    }"
+)
+
+
+stanConstants <- constants
+names(stanConstants) <- gsub("\\.","_", names(stanConstants))
+
+fit <- stan(file = 'election88_clean/17.4_multilevel_logistic.stan',
+            data = c(stanConstants, data),
+            iter = 1000,
+            chains = 1)
+
+##stan_mod <- stan_model(file = 'election88_clean/17.4_multilevel_logistic.stan')
+
+
+stanDataList.1 <- dataList.1
+
+stanInitsList.1 <- inits
+BUGSparamNames <- names(inits)
+stanParamNames <- gsub("\\.","_", BUGSparamNames)
+stanParamNames[ which(BUGSparamNames=='b.state') ] <- 'b_hat'
+names(stanInitsList.1) <- stanParamNames
+
+stanParameterRules <- lapply(stanParamNames, function(x) list(StanSourceName = x))
+names(stanParameterRules) <- BUGSparamNames
+
+
+
+addTimeResult('stan_compile', timeResult)
+
+if(is.null(initsStan)) {
+    ## missing model.init.R file (stan inits file)
+    timeResult <- system.time(stan_out <- rstan::sampling(stan_mod, data=constantsAndDataStan, chains=1, iter=niter, thin=thin))
+} else {
+    ## we have the model.init.R file
+    ## this one includes inits = ...
+    timeResult <- system.time(stan_out <- rstan::sampling(stan_mod, data=constantsAndDataStan, chains=1, iter=niter, thin=thin, init=list(initsStan)))
+}
+
+tempArray <- rstan::extract(stan_out, permuted = FALSE, inc_warmup = TRUE)[, 1, ]
+for(BUGSname in names(StanNameMaps)) {
+    iCol <- which(StanNameMaps[[BUGSname]]$StanSourceName == colnames(tempArray))
+    if(length(iCol)==1) {
+        if(!is.null(StanNameMaps[[BUGSname]]$transform))
+            tempArray[,iCol] <- StanNameMaps[[BUGSname]]$transform(tempArray[,iCol])
+        colnames(tempArray)[iCol] <- BUGSname
+    }
+}
+dimnames(tempArray)[[2]] <- gsub('_', '.', dimnames(tempArray)[[2]])
+if(!all(monitorNodesBUGS %in% dimnames(tempArray)[[2]])) {
+    missingNames <- setdiff(monitorNodesBUGS, dimnames(tempArray)[[2]])
+    warning(paste0('Stan output is missing values for: ', paste0(missingNames,collapse=', ')))
+}
+samplesArray <- array(0, dim = c(nkeep, length(monitorNodesBUGS)))
+dimnames(samplesArray)[[2]] <- monitorNodesBUGS
+monitorsWeHave <- intersect(monitorNodesBUGS, dimnames(tempArray)[[2]])
+samplesArray[, monitorsWeHave] <- tempArray[(burnin+1):floor(niter/thin), monitorsWeHave, drop=FALSE]
+addToOutput('stan', samplesArray, timeResult)
+} else warning("run_stan: rstan package is required for 'stan' option.")
+
+
+stanInfo <- list(election88_full = list(
+                     stanParameterRules = stanParameterRules,
+                     codeFile = 
+                     modelName = '',
+                     data = stanDataList.1,
+                     inits = stanInitsList.1))
+
+
+
+
+result <- MCMCsuite(code, constants, data, inits,
+                    stan_model = 'election88_clean/17.4_multilevel_logistic.stan',
+                    stan_inits = stanInitsList.1,
+                    stan_data = stanDataList.1,
+                    stanNameMaps = stanParameterRules,
+                    MCMCs = c('stan'),
+                    niter = 500, burnin = 0, thin=1)
+
+
+    list(election88_full = election88_BUGS), MCMCs=c('stan'),
+                      niter=10000, burnin = 1000, thin=1, stanInfo = stanInfo,
+                      stanDir = getwd(),summary=FALSE)
+
+saveFile <- paste0("election88_", case, "_result.Rdata")
+saveRDS(result,
+        file = saveFile)
+
+result <- updateMCMCcomparisonWithHighOrderESS(result, logVars = c('sigma.age','sigma.edu','sigma.age.edu','sigma.state','sigma.region'), includeBurninTime = FALSE)
+
+
+saveFile <- paste0("election88_", case, "_result_updatedESS.Rdata")
+saveRDS(result,
+        file = saveFile)
+
+
+
+
+
+
+```
+
+
+
+
+
+

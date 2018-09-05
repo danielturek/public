@@ -1,0 +1,30 @@
+model {
+
+p[1:n] <- election88_predict(b.0, b.female, b.black, b.female.black, b.age[1:n.age], b.edu[1:n.edu], b.age.edu[1:n.age, 1:n.edu], b.state[1:n.state], female[1:n], black[1:n], age[1:n], edu[1:n], state[1:n])
+y[1:n] ~ dbern_multi_vec_p(p[1:n])
+
+  b.0 ~ dnorm (0, sd = 100)
+  b.female ~ dnorm (0, sd = 100)
+  b.black ~ dnorm (0, sd = 100)
+  b.female.black ~ dnorm (0, sd = 100)
+
+b.age[1:n.age] ~ dnorm_multi(0, sd = sigma.age)
+b.edu[1:n.edu] ~ dnorm_multi(0, sd = sigma.edu)
+
+b.age.edu[1:n.age, 1:n.edu] ~ dnorm_multi_2d(0, sd = sigma.age.edu) ## implement as loop internally
+##for (j in 1:n.age){for (k in 1:n.edu){ 
+##    b.age.edu[j,k] ~ dnorm(0, sd = sigma.age.edu)}}
+
+b.state[1:n.state] ~ dnorm_multi_vec_mean(b.state.hat[1:n.state], sd = sigma.state)
+b.state.hat[1:n.state] <- election88_state_hat(b.region[1:n.region], b.v.prev, region[1:n.state], v.prev[1:n.state])
+
+b.v.prev ~ dnorm(0, sd = 100)
+
+b.region[1:n.region] ~ dnorm_multi(0, sd = sigma.region)
+
+  sigma.age ~ dunif (0, 100)
+  sigma.edu ~ dunif (0, 100)
+  sigma.age.edu ~ dunif (0, 100)
+  sigma.state ~ dunif (0, 100)
+  sigma.region ~ dunif (0, 100)
+}
