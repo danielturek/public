@@ -13,7 +13,7 @@ danielturek.github.io/public/langevinComparison/langevinComparison.html
 Build and install NIMBLE package on branch `hmcAD`.
 
 
-```{r, message = EVAL}
+```{r, eval = FALSE}
 remove.packages('nimble')
 library(devtools)
 install_github('nimble-dev/nimble', ref = 'hmcAD', subdir = 'packages/nimble')
@@ -30,9 +30,186 @@ Langevin sampling compared with the fully conjugate `rats` model:
 
 ```{r }
 
+##for (i in 1:N) {
+##    for (j in 1:T) {
+##        mu[i, j] <- alpha[i] + beta[i] * (x[j] - x.bar)
+##        Y[i, j] ~ dnorm(mu[i, j], tau.c)
+##    }
+##    alpha[i] ~ dnorm(alpha.c, tau.alpha)
+##    beta[i] ~ dnorm(beta.c, tau.beta)
+##}
+##alpha.c ~ dnorm(0, 1e-04)
+##beta.c ~ dnorm(0, 1e-04)
+##tau.c ~ dgamma(0.001, 0.001)
+##tau.alpha ~ dgamma(0.001, 0.001)
+##tau.beta ~ dgamma(0.001, 0.001)
+##sigma <- 1/sqrt(tau.c)
+##x.bar <- mean(x[])
+##alpha0 <- alpha.c - beta.c * x.bar
+
+library(nimble)
+nimbleOptions(experimentalEnableDerivs = TRUE)
+
+
+## DEBUGGING langevin sampler
+modelInfo <- readBUGSmodel('rats', dir = getBUGSexampleDir('rats'), returnComponents = TRUE)
+SET NEW INITS   XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+code <- modelInfo$code
+constants <- modelInfo$data[c('x', 'N', 'T')]
+data <- modelInfo$data['Y']
+inits <- modelInfo$inits
+dims <- modelInfo$dims
+##
+Rmodel <- nimbleModel(code, constants, data, inits, dimensions = dims)
+Rmodel$calculate()
+##conf <- configureMCMC(Rmodel)
+conf <- configureMCMC(Rmodel, nodes = NULL)
+conf$printSamplers()
+for(nn in Rmodel$getNodeNames(stochOnly = TRUE, includeData = FALSE)) {
+    conf$addSampler(nn, 'langevin')
+}
+conf$printSamplers()
+Rmcmc <- buildMCMC(conf)
+## 
+
+
+##Rmcmc$run(10)
+
+
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+ 
+Cmcmc$run(1000)
+Cmcmc$run(20000)
+
+ 
+s1 <- as.matrix(Cmcmc$mvSamples)
+##s2 <- as.matrix(Cmcmc$mvSamples)
+ 
+samplesSummary(s1)
+samplesPlot(s1)
+samplesPlot(s1, 'tau.c')
+samplesPlot(s1, 'alpha.c', 780:820)
+
+samplesList <- list(langevin = s1, conj = s2)
+
+
+
+library(nimble)
+nimbleOptions(experimentalEnableDerivs = TRUE)
+##nimbleOptions(buildInterfacesForCompiledNestedNimbleFunctions=TRUE)
+
+## WORK STARTS HERE
+modelInfo <- readBUGSmodel('rats', dir = getBUGSexampleDir('rats'), returnComponents = TRUE)
+
+##modelInfo$inits$alpha.c <- 242.54218449
+##modelInfo$inits$beta.c <-  6.18434523
+##modelInfo$inits$tau.alpha <- 0.01339223
+##modelInfo$inits$tau.beta <- 3
+##modelInfo$inits$tau.c <- 0.02733143
+
+
+
+outList <- list()
+niter <- 10000
+
+
+
+name <- 'conjugate'
+out <- compareMCMCs(modelInfo = modelInfo, MCMCs = 'nimble', niter = niter)[[1]]
+out <- rename_MCMC_comparison_method('nimble', name, out)
+outList[[name]] <- out
+
+
+
+name <- 'MH'
+out <- compareMCMCs(modelInfo = modelInfo, MCMCs = 'MH', niter = niter,
+                    MCMCdefs = list(MH = quote({
+                        conf <- configureMCMC(Rmodel, useConjugacy = FALSE)
+                        conf$printSamplers()
+                        return(conf)})))[[1]]
+outList[[name]] <- out
+
+
+name <- 'langevin'
+out <- compareMCMCs(modelInfo = modelInfo, MCMCs = 'langevin', niter = niter,
+                    MCMCdefs = list(langevin = quote({
+                        conf <- configureMCMC(Rmodel, nodes = NULL)
+                        nodeNames <- Rmodel$getNodeNames(stochOnly = TRUE, includeData = FALSE)
+                        for(nn in nodeNames) conf$addSampler(nn, 'langevin2')
+                        conf$printSamplers()
+                        return(conf)})))[[1]]
+outList[[name]] <- out
+
+
+
+##name <- 'langBlock'
+##out <- compareMCMCs(modelInfo = modelInfo, MCMCs = 'langBlock', niter = niter,
+##                    MCMCdefs = list(langBlock = quote({
+##                        conf <- configureMCMC(Rmodel, nodes = NULL)
+##                        nodeNames <- Rmodel$getVarNames(nodes = Rmodel$getNodeNames(stochOnly = TRUE, includeData = FALSE))
+##                        for(nn in nodeNames) conf$addSampler(nn, 'langevin2')
+##                        conf$printSamplers()
+##                        return(conf)})))[[1]]
+##outList[[name]] <- out
+
+
+
+name <- 'langTop'
+out <- compareMCMCs(modelInfo = modelInfo, MCMCs = 'langTop', niter = niter,
+                    MCMCdefs = list(langTop = quote({
+                        conf <- configureMCMC(Rmodel)
+                        nodeNames <- c('tau.c', 'tau.beta', 'tau.alpha', 'beta.c', 'alpha.c')
+                        conf$removeSamplers(nodeNames)
+                        for(nn in nodeNames) conf$addSampler(nn, 'langevin2')
+                        conf$printSamplers()
+                        return(conf)})))[[1]]
+outList[[name]] <- out
+
+
+name <- 'langTopBLK'
+out <- compareMCMCs(modelInfo = modelInfo, MCMCs = 'langTopBLK', niter = niter,
+                    MCMCdefs = list(langTopBLK = quote({
+                        conf <- configureMCMC(Rmodel)
+                        nodeNames <- c('tau.c', 'tau.beta', 'tau.alpha', 'beta.c', 'alpha.c')
+                        conf$removeSamplers(nodeNames)
+                        conf$addSampler(nodeNames, 'langevin2')
+                        conf$printSamplers()
+                        return(conf)})))[[1]]
+outList[[name]] <- out
+
+
+
+
+results <- do.call(combine_MCMC_comparison_results, unname(outList))
+
+make_MCMC_comparison_pages(results, pageComponents = list(timing = TRUE, efficiencySummary = FALSE, efficiencySummaryAllParams = TRUE, paceSummaryAllParams = TRUE, efficiencyDetails = TRUE, posteriorSummary = TRUE))
+
+system(paste0('open MCMCresults.html'))
+
+
+names(results)
+names(results$MCMCresults)
+results$MCMCresults$summary
+dimnames(results$MCMCresults$summary)
+results$MCMCresults$summary[,,'tau.c']
 
 ## TESTING COMPILE OF langevin samplers MCMC
+
+
+library(nimble)
+nimbleOptions(experimentalEnableDerivs = TRUE)
+nimbleOptions(buildInterfacesForCompiledNestedNimbleFunctions=TRUE)
+
 modelInfo <- readBUGSmodel('rats', dir = getBUGSexampleDir('rats'), returnComponents = TRUE)
+##modelInfo$inits$alpha.c <- 242.54218449
+##modelInfo$inits$beta.c <-  6.18434523
+##modelInfo$inits$tau.alpha <- 0.01339223
+##modelInfo$inits$tau.beta <- 3
+##modelInfo$inits$tau.c <- 0.02733143
+
+
+
 code <- modelInfo$code
 constants <- modelInfo$data[c('x', 'N', 'T')]
 data <- modelInfo$data['Y']
@@ -41,112 +218,157 @@ dims <- modelInfo$dims
  
 Rmodel <- nimbleModel(code, constants, data, inits, dimensions = dims)
 Rmodel$calculate()
+
+conf <- configureMCMC(Rmodel)
+nodeNames <- c('tau.c', 'tau.beta', 'tau.alpha', 'beta.c', 'alpha.c')
+conf$removeSamplers(nodeNames)
+conf$addSampler(nodeNames, 'langevin2')
+conf$printSamplers()
+
+conf <- configureMCMC(Rmodel)
 conf <- configureMCMC(Rmodel, nodes = NULL)
 conf$printSamplers()
 for(nn in Rmodel$getNodeNames(stochOnly = TRUE, includeData = FALSE)) {
     conf$addSampler(nn, 'langevin')
 }
 conf$printSamplers()
+
 Rmcmc <- buildMCMC(conf)
-
 Cmodel <- compileNimble(Rmodel)
-Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
-
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel, showCompilerOutput = TRUE)
+ 
 Cmcmc$run(1000)
+Cmcmc$run(5000)
+Cmcmc$run(10000)
+ 
+s1 <- as.matrix(Cmcmc$mvSamples)
+s2 <- as.matrix(Cmcmc$mvSamples)
+ 
+samplesSummary(s1)
+samplesPlot(s1)
+samplesPlot(s1, 'tau.c')
+samplesPlot(s1, 'alpha.c')
+samplesPlot(s1, 'beta.c')
+samplesPlot(s1, 'tau.beta')
+samplesPlot(s1, 'tau.alpha')
+samplesPlot(s1, 'tau.c')
+samplesPlot(s1, 'alpha.c')
+samplesPlot(s1, 'alpha.c', 780:820)
+
+eps <- Cmcmc$samplerFunctions$contentsList[[61]]$getEpsHistory()
+a <- Cmcmc$samplerFunctions$contentsList[[61]]$getAHistory()
+
+plot(seq_along(eps), eps, type = 'l')
+plot(seq_along(eps), eps, type = 'l')
+eps
+plot(seq_along(a), a, type = 'l')
+a
 
 
-## WORK STARTS HERE
-modelInfo <- readBUGSmodel('rats', dir = getBUGSexampleDir('rats'), returnComponents = TRUE)
-
-outList <- list()
-niter <- 10000
-
-name <- 'conjugate'
-out <- compareMCMCs(modelInfo = modelInfo, MCMCs = 'nimble', niter = niter)[[1]]
-out <- rename_MCMC_comparison_method('nimble', name, out)
-outList[[name]] <- out
-
-
-name <- 'langevin'
-
-out <- compareMCMCs(modelInfo = modelInfo, MCMCs = 'langevin', niter = niter,
-                    MCMCdefs = list(langevin = quote({
-                        conf <- configureMCMC(Rmodel, nodes = NULL)
-                        for(nn in Rmodel$getNodeNames(stochOnly = TRUE, includeData = FALSE)) conf$addSampler(nn, 'langevin')
-                        conf$printSamplers()
-                        return(conf)})))[[1]]
-
-out
-
-out <- rename_MCMC_comparison_method('nimble', name, out)
-outList[[name]] <- out
+dim(s2)
+samplesSummary(s2)
+samplesPlot(s2)
+samplesPlot(s2, 'tau.c')
+samplesPlot(s2, 'alpha.c')
+samplesPlot(s2, 'beta.c')
+samplesPlot(s2, 'tau.beta')
+samplesPlot(s2, 'tau.alpha')
 
 
 
+niter <- dim(s1)[1]
+burnin <- 2000
+samplesList <- list(conj = s1, langevin = s2)
+samplesList <- list(conj = s1[(burnin+1):niter,], langevin = s2[(burnin+1):niter,])
+
+chainsPlot(samplesList, nrows = 1)
+chainsPlot(samplesList, 'alpha.c', nrows = 1, jitter = 0.1)
+chainsPlot(samplesList, c('beta.c','tau.alpha','tau.beta','tau.c'), nrows = 1, jitter = 0.3)
+
+Cmcmc$samplerFunctions$contentsList[[1]]$getEpsHistory()
+Cmcmc$samplerFunctions$contentsList[[61]]$s
 
 
+Rmcmc$run(30)
 
-runComparison <- function(modelInfoFile, reduced, name, MCMCs, niter, MCMCdefs = list(), add = FALSE, saveFile, verbose = TRUE) {
-    if(length(MCMCs) > 1) stop('only one MCMC at a time, please')
-    if(verbose) message(paste0('running ', name, ' on ', modelInfoFile, '...'))
-    modelInfoFileToLoad <- modelInfoFile
-    if(reduced) modelInfoFileToLoad <- paste0(modelInfoFileToLoad, '_reduced')
-    modelInfoFileToLoad <- paste0('data/modelInfo_', modelInfoFileToLoad, '.RData')
-    load(modelInfoFileToLoad)
-    outList <- if(add) dget(saveFile) else list()
-    out <- compareMCMCs(modelInfo = modelInfo, MCMCs = MCMCs, MCMCdefs = MCMCdefs,
-                        monitors = modelInfo$monitors, niter = niter)[[1]]
-    out <- rename_MCMC_comparison_method(MCMCs, name, out)
-    outList[[name]] <- out
-    if(!missing(saveFile)) dput(outList, file = saveFile)
-    if(verbose) message(paste0('finished running ', name, ' on ', modelInfoFile))
-    return(invisible(outList))
+## plot of nimDerivs for 'tau.c'
+target <- 'tau.c'
+calcNodes <- Rmodel$getDependencies(target)
+Rmodel[[target]]
+nimDerivs(Rmodel$calculate(calcNodes), order = 1, wrt = target)$jacobian[1,1]
+
+N <- 100
+xs <- seq(0.0001, 0.006, length.out = N)
+ys <- numeric(N)
+for(i in 1:N) {
+    print(i)
+    Rmodel[[target]] <- xs[i]
+    ##ys[i] <- nimDerivs(Rmodel$calculate(calcNodes), order = 1, wrt = target)$jacobian[1,1]
+    ys[i] <- Rmodel$calculate(calcNodes)
 }
 
-makePages <- function(saveFile, dir, open = TRUE) {
-    outList <- dget(saveFile)
-    results <- do.call(combine_MCMC_comparison_results, unname(outList))
-    pagesDir <- paste0('pages/', dir, '/')
-    make_MCMC_comparison_pages(results, dir = pagesDir, pageComponents = list(timing = TRUE, efficiencySummary = FALSE, efficiencySummaryAllParams = TRUE, paceSummaryAllParams = TRUE, efficiencyDetails = TRUE, posteriorSummary = TRUE))
-    if(open) system(paste0('open ', pagesDir, 'MCMCresults.html'))
-}
+xs
+ys
+
+xmax <- xs[which.max(ys)]
+xmax
+Rmodel[[target]] <- xmax
+nimDerivs(Rmodel$calculate(calcNodes), order = 1, wrt = target)$jacobian[1,1]
+
+Rmodel[[target]] <- 0.0031
+nimDerivs(Rmodel$calculate(calcNodes), order = 1, wrt = target)$jacobian[1,1]
+
+plot(xs, ys)
+
+abline(v = xmax, col = 'red')
+
+
+1
+
+
+##           alpha.c   beta.c      tau.c   tau.alpha tau.beta
+##conjugate 242.4626 6.185463 0.02730609 0.004837971 3.831275
+##langevin  214.2679 6.183795 0.02740000 1.000000000 4.556273
+
+samplesSummary(s1)
+                  Mean       Median     St.Dev.    95%CI_low    95%CI_upp
+alpha.c   242.58557443 242.59919056 1.797181761 2.390130e+02 246.10165704
+beta.c      6.14606761   6.10805713 0.849190580 4.060499e+00   8.34117508
+tau.alpha   0.01216318   0.01339223 0.002425033 5.640662e-03   0.01405389
+tau.beta    2.82040836   3.00256457 2.343493370 1.339223e-02   7.85726993
+tau.c       0.02960681   0.02802497 0.005691369 1.904385e-02   0.04071646
+
+samplesPlot(s1)
+samplesPlot(s1, 'beta.c')
+samplesPlot(s1, 'tau.c')
 
 
 
+##runComparison <- function(modelInfoFile, reduced, name, MCMCs, niter, MCMCdefs = list(), add = FALSE, saveFile, verbose = TRUE) {
+##    if(length(MCMCs) > 1) stop('only one MCMC at a time, please')
+##    if(verbose) message(paste0('running ', name, ' on ', modelInfoFile, '...'))
+##    modelInfoFileToLoad <- modelInfoFile
+##    if(reduced) modelInfoFileToLoad <- paste0(modelInfoFileToLoad, '_reduced')
+##    modelInfoFileToLoad <- paste0('data/modelInfo_', modelInfoFileToLoad, '.RData')
+##    load(modelInfoFileToLoad)
+##    outList <- if(add) dget(saveFile) else list()
+##    out <- compareMCMCs(modelInfo = modelInfo, MCMCs = MCMCs, MCMCdefs = MCMCdefs,
+##                        monitors = modelInfo$monitors, niter = niter)[[1]]
+##    out <- rename_MCMC_comparison_method(MCMCs, name, out)
+##    outList[[name]] <- out
+##    if(!missing(saveFile)) dput(outList, file = saveFile)
+##    if(verbose) message(paste0('finished running ', name, ' on ', modelInfoFile))
+##    return(invisible(outList))
+##}
+## 
+##makePages <- function(saveFile, dir, open = TRUE) {
+##    outList <- dget(saveFile)
+##    results <- do.call(combine_MCMC_comparison_results, unname(outList))
+##    pagesDir <- paste0('pages/', dir, '/')
+##    make_MCMC_comparison_pages(results, dir = pagesDir, pageComponents = list(timing = TRUE, efficiencySummary = FALSE, efficiencySummaryAllParams = TRUE, paceSummaryAllParams = TRUE, efficiencyDetails = TRUE, posteriorSummary = TRUE))
+##    if(open) system(paste0('open ', pagesDir, 'MCMCresults.html'))
+##}
 
-conf <- configureMCMC(Rmodel)
-conf$printSamplers()
-Rmcmc <- buildMCMC(conf)
-
-Cmodel <- compileNimble(Rmodel)
-Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
-
-set.seed(0)
-samples <- runMCMC(Cmcmc, 10000)
-##Cmcmc$run(10000)
-##samples <- as.matrix(Cmcmc$mvSamples)
-
-colnames(samples)
-apply(samples, 2, mean)
-
-samplesPlot(samples)
-
-library(coda)
-apply(samples, 2, effectiveSize)
-
-
-nfDef <- nimbleFunction(
-    setup = function() {},
-    run = function() {
-        
-    }
-)
-
-Rnf <- nfDef()
-Cnf <- compileNimble(Rnf)#, showCompilerOutput = TRUE)
-
-Rnf$run()
-Cnf$run()
 
 
 
