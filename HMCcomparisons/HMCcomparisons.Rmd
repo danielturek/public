@@ -33,6 +33,7 @@ iter_jags    <- 2000  * m
 samplesList <- list()
 timeList <- list()
 
+set.seed(0)
 load('election88_clean/data_setup_from_stan_github/data_setup_from_stan_github.RData')
 election.inits <- list(b.0=rnorm(1), b.female=rnorm(1), b.black=rnorm(1),
                        b.female.black=rnorm(1),
