@@ -55,7 +55,7 @@ danielturek.github.io/public/nimble_vignettes.html
 
 <a href="https://nature.berkeley.edu/~pdevalpine/SCR_NIMBLE_ideas/SCR_NIMBLE_ideas.html" target="_blank">Spatial Capture-Recapture Ideas</a> - Exploring methods for improving sampling efficiency of spatially-explicit spatial capture-recapture (SCR) models using NIMBLE.
 
-<a href="danielturek.github.io/public/sparseMatrixCall/sparseMatrixCall.html" target="_blank">Sparse Matrix Calls</a> - Demonstrating how to use sparse matrix operations from the `Matrix` package inside compiled NIMBLE functions and models.
+<a href="http://danielturek.github.io/public/sparseMatrixCall/sparseMatrixCall.html" target="_blank">Sparse Matrix Calls</a> - Demonstrating how to use sparse matrix operations from the `Matrix` package inside compiled NIMBLE functions and models.
 
 
 
