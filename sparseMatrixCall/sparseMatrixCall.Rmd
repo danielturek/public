@@ -146,6 +146,57 @@ makeMatrix(ijx = Rnf(i, j, x))
 makeMatrix(ijx = Cnf(i, j, x))
 ```
 
+\   
+
+### Timing Comparisons
+
+Some brief timing comparisons, between regular R execution of
+`R_sparse_crosspord` wrapper for `Matrix::tcrossprod`, compared
+against call-back from compiled execution though NIMBLE using the
+`Cnf` compiled `nimbleFunction`.
+
+```{r }
+compare <- function(n) {
+    set.seed(0)
+    i <- ceiling(runif(n, 1, n))
+    j <- ceiling(runif(n, 1, n))
+    x <- 1:n
+    R.time <- system.time(R.ans <- R_sparse_crossprod(i, j, x))[3]
+    C.nimble.time <- system.time(C.nimble.ans <- Cnf(i, j, x))[3]
+    if(!identical(unname(R.ans), C.nimble.ans)) stop('error')
+    return(data.frame(n = n,
+                      R.time = as.numeric(R.time),
+                      C.nimble.time = as.numeric(C.nimble.time)))
+}
+
+p <- 6
+nvals <- 10^(1:p)
+as.data.frame(t(sapply(nvals, compare)))
+```
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
 
 
 

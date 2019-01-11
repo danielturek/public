@@ -297,6 +297,46 @@ Cnf &lt;- compileNimble(Rnf)</code></pre>
 ## [5,]    0    0    0    0    0    0    0
 ## [6,]    0    0    0    0    0    0    0
 ## [7,]    0    0    0    0    0    0   25</code></pre>
+<p> </p>
+</div>
+<div id="timing-comparisons" class="section level3">
+<h3>Timing Comparisons</h3>
+<p>Some brief timing comparisons, between regular R execution of <code>R_sparse_crosspord</code> wrapper for <code>Matrix::tcrossprod</code>, compared against call-back from compiled execution though NIMBLE using the <code>Cnf</code> compiled <code>nimbleFunction</code>.</p>
+<pre class="r"><code>compare &lt;- function(n) {
+    set.seed(0)
+    i &lt;- ceiling(runif(n, 1, n))
+    j &lt;- ceiling(runif(n, 1, n))
+    x &lt;- 1:n
+    R.time &lt;- system.time(R.ans &lt;- R_sparse_crossprod(i, j, x))[3]
+    C.nimble.time &lt;- system.time(C.nimble.ans &lt;- Cnf(i, j, x))[3]
+    if(!identical(unname(R.ans), C.nimble.ans)) stop('error')
+    return(data.frame(n = n,
+                      R.time = as.numeric(R.time),
+                      C.nimble.time = as.numeric(C.nimble.time)))
+}
+
+p &lt;- 6
+nvals &lt;- 10^(1:p)
+as.data.frame(t(sapply(nvals, compare)))</code></pre>
+<pre><code>##         n R.time C.nimble.time
+## 1      10  0.001         0.001
+## 2     100  0.001         0.002
+## 3    1000  0.002         0.001
+## 4   10000  0.003         0.005
+## 5  100000  0.038         0.043
+## 6 1000000  1.547         1.292</code></pre>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
 </div>
 
 
