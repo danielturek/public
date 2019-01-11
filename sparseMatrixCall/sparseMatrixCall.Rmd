@@ -1,0 +1,152 @@
+---
+title: R Outcalls to Sparse Matrix Operations
+author: Daniel Turek
+date: 11 January 2019
+output: html_document
+---
+
+<!---
+danielturek.github.io/public/sparseMatrixCall/sparseMatrixCall.html
+-->
+
+Back to [NIMBLE Vignettes](https://danielturek.github.io/public/nimble_vignettes.html)
+
+\    
+
+
+Here we'll show how to call the `Matrix::tcrossprod` function from the
+`Matrix` package inside a compiled `nimbleFunction`.
+
+\   
+
+### Setup
+
+A function to build a full (dense) matrix, from the component `i` (row
+indices), `j` (column indices), and `x` (non-zero values) sparse representation.
+
+```{r }
+makeMatrix <- function(i, j, x, nr, nc, ijx) {
+    ## ijx is an (optional, alternate) representation of {i,j,x} as a 3-column array
+    if(!missing(ijx))   { i <- ijx[,1]; j <- ijx[,2]; x <- ijx[,3] }
+    if(length(i) != length(j) | length(i) != length(x)) stop()
+    if(missing(nr)) nr <- max(i)
+    if(missing(nc)) nc <- max(j)
+    mat <- array(0, c(nr, nc))
+    for(ind in seq_along(i))   mat[i[ind], j[ind]] <- x[ind]
+    return(mat)
+}
+```
+
+\   
+
+Try using `makeMatrix`, and also the standard `tcrossprod` function from `base`.
+
+```{r }
+i <- c(1,3,7,7)
+j <- c(1,1,3,4)
+x <- c(1,2,3,4)
+
+A <- makeMatrix(i, j, x)
+A
+
+A %*% t(A)    ## what tcrossprod(A) does
+base::tcrossprod(A)    ## standard tcrossprod from base package
+```
+\   
+
+### Matrix Package
+
+Now we'll do the same `tcrossprod` calculation using the sparse
+representation and the `Matrix::tcrossprod` function.
+
+```{r }
+library(Matrix)
+
+Asparse <- Matrix::sparseMatrix(i, j, x = x)
+Asparse
+
+Matrix::tcrossprod(Asparse)
+```
+
+\   
+
+### Calling `Matrix::tcrossprod` from NIMBLE
+
+Now, we're ready to build a wrapper function for the
+`Matrix::tcrossprod` function, then use `nimbleRcall` to register
+this as a `nimbleFunction`, that can be used inside other compiled `nimbleFunctions`.
+
+
+```{r }
+R_sparse_crossprod <- function(i, j, x) {
+    require(Matrix)
+    Asparse <- Matrix::sparseMatrix(i, j, x = x)
+    ans.dsCMatrix <- Matrix::tcrossprod(Asparse)
+    ans.dgTMatrix <- as(ans.dsCMatrix, 'dgTMatrix')
+    i <- ans.dgTMatrix@i + 1
+    j <- ans.dgTMatrix@j + 1
+    x <- ans.dgTMatrix@x
+    ijx <- cbind(i, j, x)
+    return(ijx)
+}
+```
+
+Check regular R execution of our R function:
+
+```{r }
+ijx <- R_sparse_crossprod(i, j, x)
+ijx
+
+makeMatrix(ijx = ijx)
+```
+
+\   
+
+Now, we're ready to call this R function `R_sparse_crossprod` from
+within a `nimbleFunction`.
+
+```{r , message = FALSE}
+library(nimble)
+```
+
+Can register use of this function, essentially just like any
+other `nimbleFunction`, using `nimbleRcall`:
+
+```{r }
+## see:
+## ?nimbleRcall
+
+nimble_sparse_crossprod <- nimbleRcall(
+    prototype = function(i = double(1), j = double(1), x = double(1)) {},
+    returnType = double(2),
+    Rfun = 'R_sparse_crossprod'
+)
+```
+
+For example, here we'll define another `nimbleFunction` (e.g.,
+this could represent a SGV density evaluation) which will use our R
+wrapper function for `Matrix::tcrossprod`.
+
+This function will be R-executable, and also compilable and executable.
+
+```{r }
+Rnf <- nimbleFunction(
+    run = function(i = double(1), j = double(1), x = double(1)) {
+        ijx <- nimble_sparse_crossprod(i, j, x)
+        returnType(double(2))
+        return(ijx)
+    }
+)
+     
+Cnf <- compileNimble(Rnf)
+
+Rnf(i, j, x)
+Cnf(i, j, x)
+
+makeMatrix(ijx = Rnf(i, j, x))
+makeMatrix(ijx = Cnf(i, j, x))
+```
+
+
+
+
