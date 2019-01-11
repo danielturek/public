@@ -131,7 +131,7 @@ danielturek.github.io/public/sparseMatrixCall/sparseMatrixCall.html
 -->
 <p>Back to <a href="https://danielturek.github.io/public/nimble_vignettes.html">NIMBLE Vignettes</a></p>
 <p> </p>
-<p>Here we’ll show how to call the <code>tcrossprod</code> function from the <code>Matrix</code> package inside a compiled <code>nimbleFunction</code>.</p>
+<p>Here we’ll show how to call the <code>Matrix::tcrossprod</code> function from the <code>Matrix</code> package inside a compiled <code>nimbleFunction</code>.</p>
 <p> </p>
 <div id="setup" class="section level3">
 <h3>Setup</h3>
@@ -184,7 +184,7 @@ A</code></pre>
 </div>
 <div id="matrix-package" class="section level3">
 <h3>Matrix Package</h3>
-<p>Now we’ll do the same <code>tcrossprod</code> calculation using the sparse representation and the <code>Matrix</code> package.</p>
+<p>Now we’ll do the same <code>tcrossprod</code> calculation using the sparse representation and the <code>Matrix::tcrossprod</code> function.</p>
 <pre class="r"><code>library(Matrix)
 
 Asparse &lt;- Matrix::sparseMatrix(i, j, x = x)
@@ -212,7 +212,7 @@ Asparse</code></pre>
 </div>
 <div id="calling-matrixtcrossprod-from-nimble" class="section level3">
 <h3>Calling <code>Matrix::tcrossprod</code> from NIMBLE</h3>
-<p>Now, we’re ready to build a wrapper function for the <code>Matrix::tcrossprod</code> function, then use the <code>nimbleRcall</code> to register this as a <code>nimbleFunction</code>, that can be used inside other compiled <code>nimbleFunctions</code>.</p>
+<p>Now, we’re ready to build a wrapper function for the <code>Matrix::tcrossprod</code> function, then use <code>nimbleRcall</code> to register this as a <code>nimbleFunction</code>, that can be used inside other compiled <code>nimbleFunctions</code>.</p>
 <pre class="r"><code>R_sparse_crossprod &lt;- function(i, j, x) {
     require(Matrix)
     Asparse &lt;- Matrix::sparseMatrix(i, j, x = x)
@@ -245,16 +245,14 @@ ijx</code></pre>
 <p> </p>
 <p>Now, we’re ready to call this R function <code>R_sparse_crossprod</code> from within a <code>nimbleFunction</code>.</p>
 <pre class="r"><code>library(nimble)</code></pre>
-<p>Now, we can register use of this function essentially just like any other <code>nimbleFunction</code>, using <code>nimbleRcall</code>:</p>
-<pre class="r"><code>## see:
-## ?nimbleRcall
-
-nimble_sparse_crossprod &lt;- nimbleRcall(
+<p>Now we register use of the <code>R_sparse_crossprod</code> function, essentially just like any other <code>nimbleFunction</code>, using <code>nimbleRcall</code>.</p>
+<p>See <code>help(nimbleRcall)</code>.</p>
+<pre class="r"><code>nimble_sparse_crossprod &lt;- nimbleRcall(
     prototype = function(i = double(1), j = double(1), x = double(1)) {},
     returnType = double(2),
     Rfun = 'R_sparse_crossprod'
 )</code></pre>
-<p>For example, here we’ll define another <code>nimbleFunction</code> (for example, this could represent a SGV density evaluation) which will use our R wrapper function for <code>Matrix::tcrossprod</code>.</p>
+<p>For example, here we’ll define another <code>nimbleFunction</code> (e.g., this could represent a SGV density evaluation) which will internally use <code>nimble_sparse_crossprod</code> in order to call <code>Matrix::tcrossprod</code>.</p>
 <p>This function will be R-executable, and also compilable and executable.</p>
 <pre class="r"><code>Rnf &lt;- nimbleFunction(
     run = function(i = double(1), j = double(1), x = double(1)) {

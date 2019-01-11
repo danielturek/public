@@ -109,13 +109,12 @@ within a `nimbleFunction`.
 library(nimble)
 ```
 
-Can register use of this function, essentially just like any
-other `nimbleFunction`, using `nimbleRcall`:
+Now we register use of the `R_sparse_crossprod` function, essentially just like any
+other `nimbleFunction`, using `nimbleRcall`.
+
+See `help(nimbleRcall)`.
 
 ```{r }
-## see:
-## ?nimbleRcall
-
 nimble_sparse_crossprod <- nimbleRcall(
     prototype = function(i = double(1), j = double(1), x = double(1)) {},
     returnType = double(2),
@@ -124,8 +123,8 @@ nimble_sparse_crossprod <- nimbleRcall(
 ```
 
 For example, here we'll define another `nimbleFunction` (e.g.,
-this could represent a SGV density evaluation) which will use our R
-wrapper function for `Matrix::tcrossprod`.
+this could represent a SGV density evaluation) which will internally
+use `nimble_sparse_crossprod` in order to call `Matrix::tcrossprod`.
 
 This function will be R-executable, and also compilable and executable.
 
