@@ -135,7 +135,7 @@ danielturek.github.io/public/sparseMatrixCall/sparseMatrixCall.html
 <p> </p>
 <div id="setup" class="section level3">
 <h3>Setup</h3>
-<p>A function to build a full (dense) matrix, from the component <code>i</code> (row indices), <code>j</code> (column indices), and <code>x</code> (non-zero values) sparse representation.</p>
+<p>A function to construct a full (dense) matrix, from the component <code>i</code> (row indices), <code>j</code> (column indices), and <code>x</code> (non-zero values) sparse representation.</p>
 <pre class="r"><code>makeMatrix &lt;- function(i, j, x, nr, nc, ijx) {
     ## ijx is an (optional, alternate) representation of {i,j,x} as a 3-column array
     if(!missing(ijx))   { i &lt;- ijx[,1]; j &lt;- ijx[,2]; x &lt;- ijx[,3] }
@@ -147,7 +147,7 @@ danielturek.github.io/public/sparseMatrixCall/sparseMatrixCall.html
     return(mat)
 }</code></pre>
 <p> </p>
-<p>Try using <code>makeMatrix</code>, and also the standard <code>tcrossprod</code> function from <code>base</code>.</p>
+<p>Try using <code>makeMatrix</code>, and also the standard <code>tcrossprod</code> function from the <code>base</code> package.</p>
 <pre class="r"><code>i &lt;- c(1,3,7,7)
 j &lt;- c(1,1,3,4)
 x &lt;- c(1,2,3,4)
@@ -213,6 +213,7 @@ Asparse</code></pre>
 <div id="calling-matrixtcrossprod-from-nimble" class="section level3">
 <h3>Calling <code>Matrix::tcrossprod</code> from NIMBLE</h3>
 <p>Now, we’re ready to build a wrapper function for the <code>Matrix::tcrossprod</code> function, then use <code>nimbleRcall</code> to register this as a <code>nimbleFunction</code>, that can be used inside other compiled <code>nimbleFunctions</code>.</p>
+<p>This function below, <code>R_sparse_crossprod</code> is a regular R function wrapping a call to <code>Matrix::tcrossprod</code>. The key point here is that the input arguments are basic numeric vectors and the return value is a numeric array. These “basic” input and output forms are required for use of this function in other <code>nimbleFunctions</code>. But inside the body of this function, any regular R code is fine.</p>
 <pre class="r"><code>R_sparse_crossprod &lt;- function(i, j, x) {
     require(Matrix)
     Asparse &lt;- Matrix::sparseMatrix(i, j, x = x)
@@ -245,7 +246,7 @@ ijx</code></pre>
 <p> </p>
 <p>Now, we’re ready to call this R function <code>R_sparse_crossprod</code> from within a <code>nimbleFunction</code>.</p>
 <pre class="r"><code>library(nimble)</code></pre>
-<p>Now we register use of the <code>R_sparse_crossprod</code> function, essentially just like any other <code>nimbleFunction</code>, using <code>nimbleRcall</code>.</p>
+<p>Register use of the <code>R_sparse_crossprod</code> function, essentially just like any other <code>nimbleFunction</code>, using <code>nimbleRcall</code>. This is where we specify the forms of the (basic numeric) inputs and outputs to our R function.</p>
 <p>See <code>help(nimbleRcall)</code>.</p>
 <pre class="r"><code>nimble_sparse_crossprod &lt;- nimbleRcall(
     prototype = function(i = double(1), j = double(1), x = double(1)) {},
@@ -253,7 +254,7 @@ ijx</code></pre>
     Rfun = 'R_sparse_crossprod'
 )</code></pre>
 <p>For example, here we’ll define another <code>nimbleFunction</code> (e.g., this could represent a SGV density evaluation) which will internally use <code>nimble_sparse_crossprod</code> in order to call <code>Matrix::tcrossprod</code>.</p>
-<p>This function will be R-executable, and also compilable and executable.</p>
+<p>This <code>nimbleFunction</code> will be R-executable, and also compilable and executable – just like any other <code>nimbleFunction</code>, but this one also happens to call out to arbitrary R code.</p>
 <pre class="r"><code>Rnf &lt;- nimbleFunction(
     run = function(i = double(1), j = double(1), x = double(1)) {
         ijx &lt;- nimble_sparse_crossprod(i, j, x)
@@ -320,11 +321,11 @@ nvals &lt;- 10^(1:p)
 as.data.frame(t(sapply(nvals, compare)))</code></pre>
 <pre><code>##         n R.time C.nimble.time
 ## 1      10  0.001         0.001
-## 2     100  0.001         0.002
-## 3    1000  0.002         0.002
+## 2     100  0.001         0.001
+## 3    1000  0.002         0.001
 ## 4   10000  0.004         0.005
-## 5  100000  0.042          0.05
-## 6 1000000   1.64         1.365</code></pre>
+## 5  100000  0.039         0.048
+## 6 1000000  1.608         1.351</code></pre>
 <p> </p>
 <p> </p>
 <p> </p>

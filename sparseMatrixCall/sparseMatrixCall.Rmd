@@ -21,7 +21,7 @@ Here we'll show how to call the `Matrix::tcrossprod` function from the
 
 ### Setup
 
-A function to build a full (dense) matrix, from the component `i` (row
+A function to construct a full (dense) matrix, from the component `i` (row
 indices), `j` (column indices), and `x` (non-zero values) sparse representation.
 
 ```{r }
@@ -39,7 +39,8 @@ makeMatrix <- function(i, j, x, nr, nc, ijx) {
 
 \   
 
-Try using `makeMatrix`, and also the standard `tcrossprod` function from `base`.
+Try using `makeMatrix`, and also the standard `tcrossprod` function
+from the `base` package.
 
 ```{r }
 i <- c(1,3,7,7)
@@ -76,6 +77,13 @@ Now, we're ready to build a wrapper function for the
 `Matrix::tcrossprod` function, then use `nimbleRcall` to register
 this as a `nimbleFunction`, that can be used inside other compiled `nimbleFunctions`.
 
+This function below, `R_sparse_crossprod` is a regular R function
+wrapping a call to `Matrix::tcrossprod`.  The key point here is that
+the input arguments are basic numeric vectors and the return value is
+a numeric array.  These "basic" input and output forms are required for
+use of this function in other `nimbleFunctions`.  But inside the body
+of this function, any regular R code is fine.
+
 
 ```{r }
 R_sparse_crossprod <- function(i, j, x) {
@@ -109,8 +117,9 @@ within a `nimbleFunction`.
 library(nimble)
 ```
 
-Now we register use of the `R_sparse_crossprod` function, essentially just like any
-other `nimbleFunction`, using `nimbleRcall`.
+Register use of the `R_sparse_crossprod` function, essentially just like any
+other `nimbleFunction`, using `nimbleRcall`.  This is where we specify
+the forms of the (basic numeric) inputs and outputs to our R function.
 
 See `help(nimbleRcall)`.
 
@@ -126,7 +135,9 @@ For example, here we'll define another `nimbleFunction` (e.g.,
 this could represent a SGV density evaluation) which will internally
 use `nimble_sparse_crossprod` in order to call `Matrix::tcrossprod`.
 
-This function will be R-executable, and also compilable and executable.
+This `nimbleFunction` will be R-executable, and also compilable and
+executable -- just like any other `nimbleFunction`, but this one also
+happens to call out to arbitrary R code.
 
 ```{r }
 Rnf <- nimbleFunction(
