@@ -23,7 +23,9 @@ danielturek.github.io/public/nimble_vignettes.html
 
 <a href="http://danielturek.github.io/public/restartingMCMC/restartingMCMC.html" target="_blank">Restarting NIMBLE MCMC</a> - How to continue an MCMC algorithm from where it left off, after restarting an R session.
 
-<a href="https://danielturek.github.io/nngp/analysis/index.html" target="_blank">Gaussian Process and NNGP Models with MCMC </a> - How to fit Gaussian Process (GP) and Nearest Neighbor Gaussian Process (NNGP) models with NIMBLE's MCMC.
+<a href="https://danielturek.github.io/nngp/analysis/index.html" target="_blank">Gaussian Process and NNGP Models with MCMC</a> - How to fit Gaussian Process (GP) and Nearest Neighbor Gaussian Process (NNGP) models with NIMBLE's MCMC.
+
+<a href="https://danielturek.github.io/public/saveMCMCstate/saveMCMCstate.html" target="_blank">Saving Model and MCMC State</a> - How to save the state of a model object and associated MCMC algorithm, allowing you to restart R, reload the state into a new model and MCMC, and resume the MCMC sampling where it left off.
 
 
 

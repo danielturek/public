@@ -1,0 +1,316 @@
+---
+title: Saving Model and MCMC State
+author: Daniel Turek
+output: html_document
+---
+
+
+<!---
+danielturek.github.io/public/saveMCMCstate/saveMCMCstate
+--->
+
+
+Back to [NIMBLE Vignettes](https://danielturek.github.io/public/nimble_vignettes.html)
+
+\    
+
+This demonstrates how to "save" the model state, and internal state of
+an MCMC algorithm to disk.
+
+Then, R can be restarted, and this saved "state" can be reloaded into a new (structurally identical) model and MCMC algorithm, allowing the original sampling chain to be "resumed" where it left off.
+
+\   
+
+### Function Definitions
+
+\   
+
+```{r }
+getStateVariableNames <- function(samplerDef) {
+    resetMethod <- body(samplerDef$reset)
+    stateVars <- character()
+    if(resetMethod[[1]] != '{') stop('something wrong')
+    numLines <- length(resetMethod)
+    for(i in 1:numLines) {
+        if(i == 1) next
+        thisLine <- resetMethod[[i]]
+        if(thisLine[[1]] == '<<-') {
+            LHS <- thisLine[[2]]
+            if(!is.name(LHS)) stop('haven\'t dealt with non-name-LHS case yet')
+            stateVars <- c(stateVars, as.character(LHS))
+        }
+        if('my_calcAdaptationFactor' %in% all.names(thisLine)) {
+            stateVars <- c(stateVars, 'my_calcAdaptationFactor')
+        }
+    }
+    setupMethod <- body(samplerDef$setup)
+    if('empirSamp' %in% all.names(setupMethod)) stateVars <- c(stateVars, 'empirSamp')
+    return(stateVars)
+}
+
+getModelState <- function(model) {
+    modelVarNames <- model$getVarNames()
+    modelVarValuesList <- vector('list', length(modelVarNames))
+    names(modelVarValuesList) <- modelVarNames
+    for(var in modelVarNames) {
+        modelVarValuesList[[var]] <- model[[var]]
+    }
+    return(modelVarValuesList)
+}
+
+getMCMCstate <- function(conf, mcmc) {
+    stateVarNamesList <- vector('list', length(conf$samplerConfs))
+    mcmcStateValuesList <- vector('list', length(conf$samplerConfs))
+    for(i in seq_along(conf$samplerConfs)) {
+        samplerDef <- conf$getSamplerDefinition(i)
+        theseStateNames <- getStateVariableNames(samplerDef)
+        theseStateValuesList <- vector('list', length(theseStateNames))
+        names(theseStateValuesList) <- theseStateNames
+        for(j in seq_along(theseStateNames)) {
+            if(is.nf(mcmc)) {
+                if(theseStateNames[j] == 'my_calcAdaptationFactor') {
+                    theseStateValuesList[[j]] <- list(timesAdapted = mcmc$samplerFunctions$contentsList[[i]][[theseStateNames[j]]]$timesAdapted,
+                                                      gamma1 = mcmc$samplerFunctions$contentsList[[i]][[theseStateNames[j]]]$gamma1)
+                } else
+                    theseStateValuesList[[j]] <- mcmc$samplerFunctions$contentsList[[i]][[theseStateNames[j]]]
+            }
+            if(is.Cnf(mcmc)) {
+                if(theseStateNames[j] == 'my_calcAdaptationFactor') {
+                    theseStateValuesList[[j]] <- list(timesAdapted = valueInCompiledNimbleFunction(mcmc$Robject$samplerFunctions$contentsList[[i]]$my_calcAdaptationFactor$.CobjectInterface, 'timesAdapted'),
+                                                      gamma1 = valueInCompiledNimbleFunction(mcmc$Robject$samplerFunctions$contentsList[[i]]$my_calcAdaptationFactor$.CobjectInterface, 'gamma1'))
+                } else
+                    theseStateValuesList[[j]] <- valueInCompiledNimbleFunction(mcmc$samplerFunctions[[i]], theseStateNames[j])
+            }
+        }
+        mcmcStateValuesList[[i]] <- theseStateValuesList
+    }
+    return(mcmcStateValuesList)
+}
+
+setModelState <- function(model, modelState) {
+    modelVarNames <- model$getVarNames()
+    if(!identical(sort(modelVarNames), sort(names(modelState)))) stop('saved model variables don\'t agree')
+    for(var in modelVarNames) {
+        model[[var]] <- modelState[[var]]
+    }
+    invisible(model$calculate())
+}
+
+setMCMCstate <- function(conf, mcmc, mcmcState) {
+    if(length(mcmcState) != length(conf$samplerConfs)) stop('saved mcmc samplers don\'t agree')
+    for(i in seq_along(conf$samplerConfs)) {
+        theseStateValuesList <- mcmcState[[i]]
+        for(j in seq_along(theseStateValuesList)) {
+            samplerStateName <- names(theseStateValuesList)[j]
+            if(is.nf(mcmc)) {
+                if(samplerStateName == 'my_calcAdaptationFactor') {
+                    mcmc$samplerFunctions$contentsList[[i]]$my_calcAdaptationFactor$timesAdapted <- theseStateValuesList[[j]]$timesAdapted
+                    mcmc$samplerFunctions$contentsList[[i]]$my_calcAdaptationFactor$gamma1 <- theseStateValuesList[[j]]$gamma1
+                } else {
+                    mcmc$samplerFunctions$contentsList[[i]][[samplerStateName]] <- theseStateValuesList[[samplerStateName]]
+                }
+            }
+            if(is.Cnf(mcmc)) {
+                if(samplerStateName == 'my_calcAdaptationFactor') {
+                    invisible(valueInCompiledNimbleFunction(mcmc$Robject$samplerFunctions$contentsList[[i]]$my_calcAdaptationFactor$.CobjectInterface, 'timesAdapted', theseStateValuesList[[j]]$timesAdapted))
+                    invisible(valueInCompiledNimbleFunction(mcmc$Robject$samplerFunctions$contentsList[[i]]$my_calcAdaptationFactor$.CobjectInterface, 'gamma1', theseStateValuesList[[j]]$gamma1))
+                } else {
+                    invisible(valueInCompiledNimbleFunction(mcmc$samplerFunctions[[i]], samplerStateName, theseStateValuesList[[samplerStateName]]))
+                }
+            }
+        }
+    }
+}
+```
+
+
+\   
+
+### Usage Example
+
+\   
+
+```{r, message = FALSE}
+library(nimble)
+```
+
+\  
+ 
+Define a NIMBLE model object, and an MCMC algorithm to operate on it.
+
+The saving / loading state will work for *most any* NIMBLE MCMC algorithms, but
+if you have questions about your use case, then
+please email Daniel at `dbt1@williams.edu`.
+
+\  
+
+```{r }
+code <- nimbleCode({
+    for(i in 1:N) {
+        x[i] ~ dnorm(0, 1)
+    }
+    b ~ dbern(0.5)
+    c ~ dnorm(0, 1)
+    y ~ dnorm(c, 1)
+    p ~ dnorm(0, 1)
+})
+
+N <- 8
+constants <- list(N = N)
+data <- list(y = 0)
+inits <- list(x = rep(0, N),
+              b = 0,
+              c = 0,
+              p = 0)
+
+## create model object
+Rmodel <- nimbleModel(code, constants, data, inits)
+Rmodel$calculate()
+
+## configure & build MCMC
+conf <- configureMCMC(Rmodel)
+conf$removeSamplers(c('b', 'x'))
+conf$addSampler('b', 'binary')
+conf$addSampler('x[1]', 'RW')
+conf$addSampler('x[2]', 'slice')
+conf$addSampler('x[3:5]', 'RW_block')
+conf$addSampler('x[6:8]', 'AF_slice')
+conf$printSamplers()
+Rmcmc <- buildMCMC(conf)
+
+## compile
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+
+## execute MCMC for 10000 iterations
+set.seed(0)
+Cmcmc$run(10000)
+```
+
+\  
+ 
+Now, we'll "extract" and save the model state, and the internal state
+of the MCMC.
+
+For saving the MCMC state, you'll need both the compiled MCMC object
+(`Cmcmc`), and also the MCMC configuration object (`conf`).
+
+\  
+
+```{r }
+stateList <- list(modelState = getModelState(Cmodel),
+                  mcmcState = getMCMCstate(conf, Cmcmc))
+
+saveRDS(stateList, file = '~/temp/state.rds')
+```
+
+\  
+ 
+Here, you could restart R.
+
+Now we'll make new (compiled) model and MCMC objects, then load this
+previous "state" back into them.
+
+\  
+
+```{r }
+## construct an *identical* model object
+Rmodel2 <- nimbleModel(code, constants, data, inits)
+
+## construct an *identical* MCMC algorithm
+conf2 <- configureMCMC(Rmodel2)
+conf2$removeSamplers(c('b', 'x'))
+conf2$addSampler('b', 'binary')
+conf2$addSampler('x[1]', 'RW')
+conf2$addSampler('x[2]', 'slice')
+conf2$addSampler('x[3:5]', 'RW_block')
+conf2$addSampler('x[6:8]', 'AF_slice')
+conf2$printSamplers()
+Rmcmc2 <- buildMCMC(conf2)
+
+## compile
+Cmodel2 <- compileNimble(Rmodel2)
+Cmcmc2 <- compileNimble(Rmcmc2, project = Rmodel2)
+```
+
+\  
+ 
+Now, we'll "restore" the previous state into the new model (`Cmodel2`)
+and the new MCMC (`Cmcmc2`).
+
+\  
+
+```{r }
+## load the saved "state" file
+stateList <- readRDS(file = '~/temp/state.rds')
+
+modelState <- stateList$modelState
+mcmcState <- stateList$mcmcState
+
+## restore the saved "state" into the new model and new MCMC
+setModelState(Cmodel2, modelState)
+setMCMCstate(conf2, Cmcmc2, mcmcState)
+```
+
+\  
+ 
+Finally, now you can "resume" the MCMC run, exactly where it left off.
+
+**Important:** Make certain to use the argument `reset = FALSE`, so the
+  MCMC state is *not reset* to its initial settings for a new, fresh,
+  MCMC run.
+
+This option, `reset = FALSE`, is only available through the
+`mcmc$run(...)` invocation of the MCMC algorithm.
+
+\  
+
+```{r }
+## continue MCMC run
+Cmcmc$run(10000, reset = FALSE)
+```
+
+\   
+
+That's it!  You did it!
+
+
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+
+
