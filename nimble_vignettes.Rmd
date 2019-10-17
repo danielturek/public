@@ -61,7 +61,9 @@ danielturek.github.io/public/nimble_vignettes.html
 
 <a href="https://nature.berkeley.edu/~pdevalpine/SCR_NIMBLE_ideas/SCR_NIMBLE_ideas.html" target="_blank">Spatial Capture-Recapture (SCR) Ideas</a> - Exploring methods for improving sampling efficiency of spatially-explicit spatial capture-recapture (SCR) models using NIMBLE.
 
+<!--
 <a href="http://danielturek.github.io/public/scr/wolverine_example.html" target="_blank">Spatial Capture-Recapture (SCR) Wolverine Example</a> - Working example of Wolverine model, as in "Efficient MCMC for Spatial Capture-Recapture Models" (Turek *et al*, *submitted*).
+-->
 
 
 

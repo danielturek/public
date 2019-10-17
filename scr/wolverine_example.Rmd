@@ -9,7 +9,11 @@ output: html_document
 http://danielturek.github.io/public/scr/wolverine_example 
 -->
 
+
+
+<!--
 Back to [NIMBLE Vignettes](https://danielturek.github.io/public/nimble_vignettes.html) 
+-->
 
 
 \  
