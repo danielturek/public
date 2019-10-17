@@ -373,7 +373,7 @@ inits &lt;- list(sxy = wolverine_inits$sxy,
 <p>The function <code>GetDetectorIndex</code> identifies the set of detectors that are within a certain distance <span class="math inline">\(d_{max}\)</span> from each habitat cell center. The value of <span class="math inline">\(d_{max}\)</span> should be large enough so that for any particular individual, the <code>sxy</code> values of the initial activity center restrict the calculation of <span class="math inline">\(p_0\)</span> to all detectors with positive detections. Here, we use <span class="math inline">\(d_{max}=38\)</span>.</p>
 <p>Because of the large dimensions of the habitat matrix, we resize it to lower dimensions. This reduces the number of habitat cells for which we have to identify the set of detectors that are <span class="math inline">\(d_{max}\)</span> from the cell center. We resize the habitat matrix by a factor of 24, which corresponds to the the <code>fact</code> argument used internally in <code>raster::disaggregate</code>. The goal is to create the object <code>DetectorIndex$detectorIndex</code> of the smallest dimension possible.</p>
 <p>The <code>GetDetectorIndex</code> function is defined in the auxiliary script <code>wolverine_functions.R</code>, which is <a href="http://danielturek.github.io/public/scr/wolverine_functions.R">available for download here</a>.</p>
-<pre class="r"><code>source('wolverine_functions.R')
+<pre class="r"><code>source(&quot;wolverine_functions.R&quot;)
 library(raster)</code></pre>
 <pre class="r"><code>set.seed(5)
 DetectorIndex &lt;- GetDetectorIndex(habitat.mx = data$habitat.mx,

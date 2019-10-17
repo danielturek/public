@@ -253,7 +253,7 @@ The `GetDetectorIndex` function is defined in the auxiliary script
 `wolverine_functions.R`, which is [available for download here](http://danielturek.github.io/public/scr/wolverine_functions.R).
 
 ```{r, message = FALSE}
-source('wolverine_functions.R')
+source("wolverine_functions.R")
 library(raster)
 ```
 
