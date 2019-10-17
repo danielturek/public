@@ -51,13 +51,17 @@ danielturek.github.io/public/nimble_vignettes.html
 
 ## Other
 
+<a href="https://github.com/nimble-dev/nimble/wiki/MCMC-Style-Guide" target="_blank">MCMC Style Guide</a> - The NIMBLE MCMC Team welcomes external contributions of sampling algorithms, new features, or otherwise.  Please see this guide regarding MCMC code formatting.
+
 <a href="http://danielturek.github.io/public/codeSubstitution/demo.html" target="_blank">Code Substitution</a> - How to manipulate `code` objects in R, including use of the `substitute` and `eval` functions.
 
 <a href="http://danielturek.github.io/public/jags_block_adaptation/jags_block_adaptation.html" target="_blank">JAGS Block Sampling Adaptation</a> - Describes the algorithm underlying JAGS' block sampler adaptation scheme.
 
-<a href="https://nature.berkeley.edu/~pdevalpine/SCR_NIMBLE_ideas/SCR_NIMBLE_ideas.html" target="_blank">Spatial Capture-Recapture Ideas</a> - Exploring methods for improving sampling efficiency of spatially-explicit spatial capture-recapture (SCR) models using NIMBLE.
-
 <a href="http://danielturek.github.io/public/sparseMatrixCall/sparseMatrixCall.html" target="_blank">Sparse Matrix Calls</a> - Demonstrating how to use sparse matrix operations from the `Matrix` package inside compiled NIMBLE functions and models.
+
+<a href="https://nature.berkeley.edu/~pdevalpine/SCR_NIMBLE_ideas/SCR_NIMBLE_ideas.html" target="_blank">Spatial Capture-Recapture (SCR) Ideas</a> - Exploring methods for improving sampling efficiency of spatially-explicit spatial capture-recapture (SCR) models using NIMBLE.
+
+<a href="http://danielturek.github.io/public/scr/wolverine_example.html" target="_blank">Spatial Capture-Recapture (SCR) Wolverine Example</a> - Working example of Wolverine model, as in "Efficient MCMC for Spatial Capture-Recapture Models" (Turek *et al*, *submitted*).
 
 
 
