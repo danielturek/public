@@ -1,7 +1,6 @@
 ---
 title: "Spatial Capture-Recapture: Wolverine Example"
 author: "Daniel Turek and Cyril Milleret"
-date: 17 October 2019
 output: html_document
 ---
 
