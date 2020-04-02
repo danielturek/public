@@ -27,6 +27,9 @@ danielturek.github.io/public/nimble_vignettes.html
 
 <a href="https://danielturek.github.io/public/saveMCMCstate/saveMCMCstate.html" target="_blank">Saving Model and MCMC State</a> - How to save the state of a model object and associated MCMC algorithm, allowing you to restart R, reload the state into a new model and MCMC, and resume the MCMC sampling where it left off.
 
+<a href="http://danielturek.github.io/public/parallelMCMC/parallelMCMC.html" target="_blank">Parallel MCMC chains</a> - How to execute parallel MCMC chains using the `parallel` package, and also to optionally continue running each MCMC chain after assessing convergence.
+
+
 
 
 
