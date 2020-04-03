@@ -1,5 +1,5 @@
 ---
-title: Parallel MCMC
+title: Parallel MCMC Chains
 output: html_document
 ---
 
@@ -11,9 +11,11 @@ Back to [NIMBLE Vignettes](https://danielturek.github.io/public/nimble_vignettes
 
 \    
 
-The following demonstrates how to execute `nc` chains of an MCMC using
-the `parallel` package, then assess convergence; then, to continue
-running each of the `nc` chains in parallel to extend the MCMC run.
+The following demonstrates how to execute `nchains` chains of an MCMC using
+the `parallel` package.
+
+The samples are then inspected, and optionally each chain can continue
+parallel execuation to extend the MCMC run.
 
 \   
 
@@ -21,15 +23,30 @@ running each of the `nc` chains in parallel to extend the MCMC run.
 ```{r, eval = FALSE}
 library(nimble)
 library(parallel)
-library(basicMCMCplots)
 
-code <- nimbleCode({ a ~ dnorm(0, 1) })
-constants <- list()
-data <- list()
-initsFunction <- function() { list(a = rnorm(1)) }
+code <- nimbleCode({
+    mu ~ dnorm(0, 0.001)
+    sigma ~ dunif(0, 1000)
+    for(i in 1:N) {
+        y[i] ~ dnorm(mu, sd = sigma)
+    }
+})
+
+set.seed(0)
+N <- 10
+y <- rnorm(N, 4, 2)
+
+constants <- list(N = N)
+
+data <- list(y = y)
+
+initsFunction <- function() {
+    list(mu = rnorm(1),
+         sigma = runif(1, 0, 10))
+}
     
-nc <- 3   ## number of chains
-cl <- makeCluster(nc, timeout = 5184000)
+nchains <- 3   ## number of chains
+cl <- makeCluster(nchains, timeout = 86400)    ## 1 day
 clusterExport(cl, c('code', 'constants', 'data'))
 
 for(i in seq_along(cl)) {
@@ -50,19 +67,53 @@ samplesList1 <- clusterEvalQ(cl, {
     return(samples)
 })
 
-names(samplesList1) <- paste0('chain', 1:nc)
+names(samplesList1) <- paste0('chain', 1:nchains)
+```
 
-## assess convergence of samplesList1,
-## if not converged, then continue sampling:
+```{r echo = FALSE, eval = FALSE}
+save(samplesList1, file = '~/github/public/parallelMCMC/SL1.RData')
+```
+
+```{r echo = FALSE}
+load('~/github/public/parallelMCMC/SL1.RData')
+```
+
+\  
+
+Inspect the samples in `samplesList1`:
+
+
+```{r, fig.width = 6, fig.height = 3}
+lapply(samplesList1, dim)
+
+library(basicMCMCplots)
 chainsPlot(samplesList1)
+```
 
+\  
+
+Now continue running each MCMC chain for an additional 20000 samples:
+
+```{r eval = FALSE}
 samplesList2 <- clusterEvalQ(cl, {
-    Cmcmc$run(10000, reset = FALSE)
+    Cmcmc$run(20000, reset = FALSE)
     samples <- as.matrix(Cmcmc$mvSamples)
     return(samples)
 })
 
-names(samplesList2) <- paste0('chain', 1:nc)
+names(samplesList2) <- paste0('chain', 1:nchains)
+```
+
+```{r echo = FALSE, eval = FALSE}
+save(samplesList2, file = '~/github/public/parallelMCMC/SL2.RData')
+```
+
+```{r echo = FALSE}
+load('~/github/public/parallelMCMC/SL2.RData')
+```
+
+```{r }
+lapply(samplesList2, dim)
 ```
 
 
