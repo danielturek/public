@@ -1,5 +1,6 @@
 ---
 title: Parallel MCMC Chains
+author: Daniel Turek
 output: html_document
 ---
 
