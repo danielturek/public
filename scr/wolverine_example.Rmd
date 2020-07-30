@@ -198,9 +198,9 @@ code <- nimbleCode({
 
 ### Load and Process Data
 
-We load the Wolverine example data.
+Data used in the Wolverine example is available from the Dryad Digital Repository:
 
-The data file can be [downloaded here](http://danielturek.github.io/public/scr/wolverine_data.RData).
+<a href="https://doi.org/10.5061/dryad.42m96c8" target="_blank" style="color: blue">https://doi.org/10.5061/dryad.42m96c8</a>
 
 We also create the `code`, `constants`, `data`, and `inits` for later use in 
 the function `nimbleModel`. 
