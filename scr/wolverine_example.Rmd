@@ -4,11 +4,14 @@ author: "Cyril Milleret, Daniel Turek and Pierre Dupont"
 output: html_document
 ---
 
+\  
+ 
 This example demonstrates the Wolverine example model, as in
 "Efficient MCMC for Spatial Capture-Recapture Models" (Turek *et al*, *submitted*).
 Specifically, we implement the final version of the wolverine
 model and MCMC.  Details of the functions and procedure are provided therein.
 
+\  
 
 ### Load Libraries 
 
@@ -22,6 +25,8 @@ library(basicMCMCplots)
 ```{r }
 set.seed(5)
 ```
+
+\  
 
 ### Define Model Structure
 
@@ -65,6 +70,7 @@ code <- nimbleCode({
 })
 ```
 
+\  
 
 ### Load and Process Data
 
@@ -99,7 +105,6 @@ inits <- list(sxy = wolverine_inits$sxy,
               psi = 0.5,
               sigma = 6)
 ```
-
 
 Now we do some processing of the data, for use in this version
 of the model.
@@ -146,6 +151,7 @@ data$nbDetections <- ySparse$detNums[,1]
 constants$nMaxDetectors <- ySparse$maxDetNums
 ```
 
+\  
 
 ### Create NIMBLE Model
 
@@ -156,6 +162,7 @@ defined in `code`, and the constants, data, and initial values.
 Rmodel <- nimbleModel(code, constants, data, inits)
 ```
 
+\  
 
 ### Configure and Build MCMC
 
@@ -184,6 +191,7 @@ for(node in ACnodes) {
 Rmcmc <- buildMCMC(conf)
 ```
 
+\  
 
 ### Compile and Run MCMC
 
@@ -211,6 +219,7 @@ save(samples, MCMC_runtime, file = "wolverine_samples.RData")
 load("wolverine_samples.RData")
 ```
 
+\  
 
 ### Results
 

@@ -183,7 +183,9 @@ summary {
 </div>
 
 
+<p> </p>
 <p>This example demonstrates the Wolverine example model, as in “Efficient MCMC for Spatial Capture-Recapture Models” (Turek <em>et al</em>, <em>submitted</em>). Specifically, we implement the final version of the wolverine model and MCMC. Details of the functions and procedure are provided therein.</p>
+<p> </p>
 <div id="load-libraries" class="section level3">
 <h3>Load Libraries</h3>
 <pre class="r"><code>library(nimble)
@@ -191,6 +193,7 @@ library(nimbleSCR)
 library(coda)
 library(basicMCMCplots)</code></pre>
 <pre class="r"><code>set.seed(5)</code></pre>
+<p> </p>
 </div>
 <div id="define-model-structure" class="section level3">
 <h3>Define Model Structure</h3>
@@ -231,6 +234,7 @@ library(basicMCMCplots)</code></pre>
     ## derived quantity: total population size
     N &lt;- sum(z[1:n.individuals])
 })</code></pre>
+<p> </p>
 </div>
 <div id="load-and-process-data" class="section level3">
 <h3>Load and Process Data</h3>
@@ -285,11 +289,13 @@ data$y &lt;- ySparse$y[,,1]
 data$yDets &lt;- ySparse$detIndices[,,1]
 data$nbDetections &lt;- ySparse$detNums[,1]
 constants$nMaxDetectors &lt;- ySparse$maxDetNums</code></pre>
+<p> </p>
 </div>
 <div id="create-nimble-model" class="section level3">
 <h3>Create NIMBLE Model</h3>
 <p>Now, we can create the <code>nimble</code> model object, using the model structure defined in <code>code</code>, and the constants, data, and initial values.</p>
 <pre class="r"><code>Rmodel &lt;- nimbleModel(code, constants, data, inits)</code></pre>
+<p> </p>
 </div>
 <div id="configure-and-build-mcmc" class="section level3">
 <h3>Configure and Build MCMC</h3>
@@ -309,6 +315,7 @@ for(node in ACnodes) {
 }
 
 Rmcmc &lt;- buildMCMC(conf)</code></pre>
+<p> </p>
 </div>
 <div id="compile-and-run-mcmc" class="section level3">
 <h3>Compile and Run MCMC</h3>
@@ -320,6 +327,7 @@ Cmcmc &lt;- compileNimble(Rmcmc, project = Rmodel)
 MCMC_runtime &lt;- system.time(
     samples &lt;- runMCMC(Cmcmc, niter = n.iterations)
 )</code></pre>
+<p> </p>
 </div>
 <div id="results" class="section level3">
 <h3>Results</h3>
