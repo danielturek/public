@@ -1,0 +1,31 @@
+---
+title: Package Downloads
+author: Daniel Turek
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+\   
+
+```{r }
+library(cranlogs)
+
+pkgs <- c('nimble',
+          'nimbleSCR',
+          'nimbleSMC',
+          'basicMCMCplots',
+          'BayesNSGP',
+          'MATA')
+
+from <- '2018-01-01'
+
+downloads <- cran_downloads(pkgs, from = from, to = Sys.Date())
+
+for(p in pkgs)
+    plot(count ~ date,
+         data = downloads[downloads$package==p,],
+         type = 'l', main = p, xlab = 'Date', ylab = 'Downloads')
+```
+
+
+
