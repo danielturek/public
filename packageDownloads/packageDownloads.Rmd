@@ -15,21 +15,20 @@ danielturek.github.io/public/packageDownloads/packageDownloads.html
 ```{r }
 library(cranlogs)
 
-pkgs <- c('nimble',
-          'nimbleSCR',
-          'nimbleSMC',
-          'basicMCMCplots',
-          'BayesNSGP',
-          'MATA')
+df <- data.frame(
+    pkgs = c('nimble', 'nimbleSCR', 'nimbleSMC', 'basicMCMCplots', 'BayesNSGP', 'MATA'),
+    ymax = c(200, 30, 30, 80, 40, 50)
+)
 
 from <- '2018-01-01'
 
-downloads <- cran_downloads(pkgs, from = from, to = Sys.Date())
+downloads <- cran_downloads(df$pkgs, from = from, to = Sys.Date())
 
-for(p in pkgs)
+for(i in 1:nrow(df))
     plot(count ~ date,
-         data = downloads[downloads$package==p,],
-         type = 'l', main = p, xlab = 'Date', ylab = 'Downloads')
+         data = downloads[downloads$package == df$pkgs[i], ],
+         main = df$pkgs[i], ylim = c(0, df$ymax[i]),
+         type = 'l', xlab = 'Date', ylab = 'Downloads')
 ```
 
 
