@@ -1,35 +1,83 @@
 ---
 title: Package Downloads
 author: Daniel Turek
-date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: html_document
 ---
 
 <!---
 danielturek.github.io/public/packageDownloads/packageDownloads.html
+Cleveland, W. S. (1979) Robust locally weighted regression and smoothing scatterplots. J. Amer. Statist. Assoc. 74, 829--836. 
 -->
 
+\   
+
+Data downloaded from <a href="https://cran.r-project.org/"
+target="_blank" style="color: blue">CRAN</a>, the Comprehensive R
+Archive Network, `r format(Sys.time(), '%d %B, %Y')`.
+
+Green lines show LOWESS [1] smoothed curve.
 
 \   
 
 ```{r }
-library(cranlogs)
+suppressMessages(library(cranlogs))
+suppressMessages(library(gplots))
 
 df <- data.frame(
-    pkgs = c('nimble', 'nimbleSCR', 'nimbleSMC', 'basicMCMCplots', 'BayesNSGP', 'MATA'),
-    ymax = c(200, 30, 30, 80, 40, 50)
+    pkgs = c('nimble', 'basicMCMCplots', 'MATA', 'nimbleSCR', 'nimbleSMC', 'BayesNSGP'),
+    ymax = c(200, 80, 50, 30, 30, 40)
 )
 
 from <- '2018-01-01'
 
 downloads <- cran_downloads(df$pkgs, from = from, to = Sys.Date())
 
-for(i in 1:nrow(df))
+for(i in 1:nrow(df)) {
+    count <- downloads[downloads$package == df$pkgs[i], ]$count
+    date <- downloads[downloads$package == df$pkgs[i], ]$date
     plot(count ~ date,
-         data = downloads[downloads$package == df$pkgs[i], ],
          main = df$pkgs[i], ylim = c(0, df$ymax[i]),
-         type = 'l', xlab = 'Date', ylab = 'Downloads')
+         type = 'l', xlab = 'Date', ylab = 'Daily Downloads')
+    ind <- min(which(count > 0)) : length(count)
+    smoothed <- gplots::lowess(count[ind] ~ as.numeric(date[ind]))
+    lines(smoothed$x, smoothed$y, col = 'green', lwd = 2)
+}
 ```
+
+\   
+
+[1] Cleveland, W. S. (1979). Robust locally weighted regression and smoothing scatterplots. *Journal of the American Statistical Association,* 74(368), 829-836.
+
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
 
 
 
