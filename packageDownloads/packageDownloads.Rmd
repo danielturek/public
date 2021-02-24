@@ -15,7 +15,7 @@ Data downloaded from <a href="https://cran.r-project.org/"
 target="_blank" style="color: blue">CRAN</a>, the Comprehensive R
 Archive Network, `r format(Sys.time(), '%d %B, %Y')`.
 
-Green lines show LOWESS [1] smoothed curve.
+Green lines display LOWESS [1,2] smoothed curves.
 
 \   
 
@@ -46,8 +46,13 @@ for(i in 1:nrow(df)) {
 
 \   
 
-[1] Cleveland, W. S. (1979). Robust locally weighted regression and smoothing scatterplots. *Journal of the American Statistical Association,* 74(368), 829-836.
+[1] Cleveland, William S. (1979). Robust locally weighted regression and
+smoothing scatterplots. *Journal of the American Statistical
+Association,* 74(368), 829-836.
 
+[2] Cleveland, William S. (1981). LOWESS: A program for smoothing
+scatterplots by robust locally weighted regression. *The American
+Statistician,* 35(1): 54.
 
 \   
 
