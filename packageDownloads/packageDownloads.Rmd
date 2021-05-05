@@ -25,7 +25,7 @@ suppressMessages(library(gplots))
 
 df <- data.frame(
     pkgs = c('nimble', 'basicMCMCplots', 'MATA', 'nimbleSCR', 'nimbleSMC', 'BayesNSGP'),
-    ymax = c(200, 80, 50, 30, 30, 40)
+    ymax = c(200, 80, 80, 30, 30, 40)
 )
 
 from <- '2018-01-01'
