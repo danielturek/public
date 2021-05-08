@@ -24,8 +24,8 @@ suppressMessages(library(cranlogs))
 suppressMessages(library(gplots))
 
 df <- data.frame(
-    pkgs = c('nimble', 'basicMCMCplots', 'MATA', 'nimbleSCR', 'nimbleSMC', 'BayesNSGP'),
-    ymax = c(200, 80, 80, 30, 30, 40)
+    pkgs = c('nimble', 'basicMCMCplots', 'MATA', 'nimbleEcology', 'nimbleSCR', 'nimbleSMC', 'BayesNSGP'),
+    ymax = c(200, 80, 80, 40, 30, 30, 40)
 )
 
 from <- '2018-01-01'
@@ -39,7 +39,7 @@ for(i in 1:nrow(df)) {
          main = df$pkgs[i], ylim = c(0, df$ymax[i]),
          type = 'l', xlab = 'Date', ylab = 'Daily Downloads')
     ind <- min(which(count > 0)) : length(count)
-    smoothed <- gplots::lowess(count[ind] ~ as.numeric(date[ind]))
+    smoothed <- gplots::lowess(count[ind] ~ as.numeric(date[ind]), f = 1)
     lines(smoothed$x, smoothed$y, col = 'green', lwd = 2)
 }
 ```
