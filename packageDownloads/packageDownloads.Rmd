@@ -24,23 +24,22 @@ suppressMessages(library(cranlogs))
 suppressMessages(library(gplots))
 
 df <- data.frame(
-    pkgs = c('nimble', 'MATA', 'basicMCMCplots', 'nimbleEcology', 'nimbleSCR', 'nimbleSMC', 'BayesNSGP'),
-    ymax = c(200, 80, 80, 40, 30, 30, 40)
+    pkgs = c('nimble', 'MATA', 'basicMCMCplots', 'BayesNSGP', 'nimbleEcology', 'nimbleSCR', 'nimbleSMC'),
+    ymax = c(200, 80, 80, 40, 40, 30, 30)
 )
 
 from <- '2018-01-01'
 
-downloads <- cran_downloads(df$pkgs, from = from, to = Sys.Date())
+downloads <- cranlogs::cran_downloads(df$pkgs, from = from, to = Sys.Date())
 
 for(i in 1:nrow(df)) {
     count <- downloads[downloads$package == df$pkgs[i], ]$count
     date <- downloads[downloads$package == df$pkgs[i], ]$date
-    plot(count ~ date,
-         main = df$pkgs[i], ylim = c(0, df$ymax[i]),
+    plot(count ~ date, main = df$pkgs[i], ylim = c(0, df$ymax[i]),
          type = 'l', xlab = 'Date', ylab = 'Daily Downloads')
     ind <- min(which(count > 0)) : length(count)
     smoothed <- gplots::lowess(count[ind] ~ as.numeric(date[ind]), f = 1)
-    lines(smoothed$x, smoothed$y, col = 'green', lwd = 3)
+    lines(x = smoothed$x, y = smoothed$y, col = 'green', lwd = 3)
 }
 ```
 
