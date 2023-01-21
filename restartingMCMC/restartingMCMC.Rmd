@@ -84,8 +84,11 @@ We'll leave the
 conjugate sampler that is assigned to `mu`, and the`RW` samplers
 assigned to the `beta` and `epsilon` terms.
 
+You can decide whether or not to include WAIC by setting `useWAIC`.
+
 ```{r }
-conf <- configureMCMC(Rmodel)
+useWAIC <- TRUE
+conf <- configureMCMC(Rmodel, enableWAIC = useWAIC)
 conf$printSamplers()
 conf$removeSamplers("sigma")
 conf$addSampler("sigma", "slice")
@@ -122,6 +125,7 @@ Now, before ending the R session, we'll need to save several things:
 3. The internal state variables from all the MCMC samplers.  This will
 be the slightly tricky part, but not too difficult.
 4. R's random number seed.
+5. If using WAIC, the internal state variables for the WAIC calculation.
 
 \   
 
@@ -290,6 +294,25 @@ continued, had we actually kept running the MCMC chain now.
 seed <- .Random.seed
 ```
 
+##### WAIC State Variables  
+
+If you're using WAIC, you'll also need to save the current values of some WAIC-related quantities that are used in NIMBLE's online WAIC algorithm.
+
+```{r }
+waicState <- list()
+if(useWAIC) {
+    waicState$mcmcIter <- valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "mcmcIter")
+    waicState$lppdSumMaxMat <- valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "lppdSumMaxMat")
+    waicState$lppdCurSumMat <- valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "lppdCurSumMat")
+    waicState$sspWAICmat <- valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "sspWAICmat")
+    waicState$meanpWAICmat <- valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "meanpWAICmat")
+    waicState$delta1pWAICmat <- valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "delta1pWAICmat")
+    waicState$delta2pWAICmat <- valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "delta2pWAICmat")
+    waicState$logProbMat <- valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "logProbMat")
+    waicState$finalized <- valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "finalized")
+}
+```
+
 \   
 
 Now, save all these to a file.
@@ -297,7 +320,7 @@ Now, save all these to a file.
 
 ```{r }
 fileName <- '~/temp/restartMCMC.RData'
-save(samples, modelVariables, samplerStates, seed, file = fileName)
+save(samples, modelVariables, samplerStates, waicState, seed, file = fileName)
 ```
 
 
@@ -348,7 +371,7 @@ Rmodel <- nimbleModel(code, constants, data, inits)
 
 Rmodel$calculate()
 
-conf <- configureMCMC(Rmodel)
+conf <- configureMCMC(Rmodel, enableWAIC = useWAIC)
 conf$removeSamplers("sigma")
 conf$addSampler("sigma", "slice")
 conf$printSamplers()
@@ -451,6 +474,26 @@ off.
 
 \   
 
+##### Restore the sampler state variables 
+
+If using WAIC, restore the WAIC state variables.
+
+```{r}
+if(useWAIC) {
+    valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "mcmcIter", waicState[["mcmcIter"]])
+    valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "lppdSumMaxMat", waicState[["lppdSumMaxMat"]])
+    valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "lppdCurSumMat", waicState[["lppdCurSumMat"]])
+    valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "sspWAICmat", waicState[["sspWAICmat"]])
+    valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "meanpWAICmat", waicState[["meanpWAICmat"]])
+    valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "delta1pWAICmat", waicState[["delta1pWAICmat"]])
+    valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "delta2pWAICmat", waicState[["delta2pWAICmat"]])
+    valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "logProbMat", waicState[["logProbMat"]])
+    valueInCompiledNimbleFunction(Cmcmc$waicFun[[1]], "finalized", waicState[["finalized"]])
+}                                                 
+```
+
+\
+
 ## Continue Running MCMC
 
 You can now continue running the `Cmcmc` algorithm, and it will
@@ -460,9 +503,11 @@ Just make sure to use the
 `reset = FALSE` argument, so it doesn't reset all the samplers back to
 their initial states.
 
+And if using WAIC, similarly set `resetWAIC = FALSE`.
+
 
 ```{r }
-Cmcmc$run(10000, reset = FALSE)
+Cmcmc$run(10000, reset = FALSE, resetWAIC = FALSE)
 samples_continued <- as.matrix(Cmcmc$mvSamples)
 ```
 
@@ -493,6 +538,11 @@ samples_all[9995:10005,]
 ## [11,] 1.331974 0.2388559 2.694611 0.03243129
 ```
 
+If using WAIC, we can look at the WAIC value from the combined runs.
+
+```{r}
+Cmcmc$getWAIC()
+```
 
 \   
 
@@ -539,7 +589,7 @@ Rmodel <- nimbleModel(code, constants, data, inits)
 
 Rmodel$calculate()
 
-conf <- configureMCMC(Rmodel)
+conf <- configureMCMC(Rmodel, enableWAIC = useWAIC)
 conf$removeSamplers("sigma")
 conf$addSampler("sigma", "slice")
 conf$printSamplers()
@@ -554,6 +604,9 @@ Cmcmc$run(20000)
 samples_all <- as.matrix(Cmcmc$mvSamples)
 dim(samples_all)
 samples_all[9995:10005,]
+
+if(useWAIC)
+    Cmcmc$getWAIC()
 ```
 
 \   

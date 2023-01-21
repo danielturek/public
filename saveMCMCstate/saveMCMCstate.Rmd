@@ -87,6 +87,22 @@ getMCMCstate <- function(conf, mcmc) {
     return(mcmcStateValuesList)
 }
 
+getWAICstate <- function(mcmc) {
+    waicStateNames <- c('delta1pWAICmat', 'delta2pWAICmat', 'finalized', 'logProbMat', 'lppdCurSumMat', 'lppdSumMaxMat',
+       'mcmcIter', 'meanpWAICmat', 'sspWAICmat')
+    waicStateList <- vector('list', length(waicStateNames))
+    names(waicStateList) <- waicStateNames
+    for(nm in waicStateNames) {
+        if(is.nf(mcmc)) {
+            waicStateList[[nm]] <- mcmc$waicFun[[1]][[nm]]
+        }
+        if(is.Cnf(mcmc)) {
+            waicStateList[[nm]] <- valueInCompiledNimbleFunction(mcmc$waicFun[[1]], nm)
+        }
+    }
+    return(waicStateList)
+}
+
 setModelState <- function(model, modelState) {
     modelVarNames <- model$getVarNames()
     if(!identical(sort(modelVarNames), sort(names(modelState)))) stop('saved model variables don\'t agree')
@@ -121,6 +137,17 @@ setMCMCstate <- function(conf, mcmc, mcmcState) {
         }
     }
 }
+
+setWAICstate <- function(mcmc, waicState) {
+    for(nm in names(waicState)) {
+        if(is.nf(mcmc)) {
+            mcmc$waicFun[[1]][[nm]] <- waicState[[nm]]
+        }                       
+        if(is.Cnf(mcmc)) {
+            invisible(valueInCompiledNimbleFunction(mcmc$waicFun[[1]], nm, waicState[[nm]]))
+        }
+    }
+}
 ```
 
 
@@ -137,6 +164,7 @@ library(nimble)
 \  
  
 Define a NIMBLE model object, and an MCMC algorithm to operate on it.
+Optionally, choose to calculate WAIC.
 
 The saving / loading state will work for *most any* NIMBLE MCMC algorithms, but
 if you have questions about your use case, then
@@ -145,6 +173,8 @@ please email Daniel at `dbt1@williams.edu`.
 \  
 
 ```{r }
+useWAIC <- TRUE
+
 code <- nimbleCode({
     for(i in 1:N) {
         x[i] ~ dnorm(0, 1)
@@ -168,7 +198,7 @@ Rmodel <- nimbleModel(code, constants, data, inits)
 Rmodel$calculate()
 
 ## configure & build MCMC
-conf <- configureMCMC(Rmodel)
+conf <- configureMCMC(Rmodel, enableWAIC = useWAIC)
 conf$removeSamplers(c('b', 'x'))
 conf$addSampler('b', 'binary')
 conf$addSampler('x[1]', 'RW')
@@ -200,6 +230,8 @@ For saving the MCMC state, you'll need both the compiled MCMC object
 ```{r }
 stateList <- list(modelState = getModelState(Cmodel),
                   mcmcState = getMCMCstate(conf, Cmcmc))
+if(useWAIC)
+    stateList[['waicState']] <- getWAICstate(Cmcmc)
 
 saveRDS(stateList, file = '~/temp/state.rds')
 ```
@@ -218,7 +250,7 @@ previous "state" back into them.
 Rmodel2 <- nimbleModel(code, constants, data, inits)
 
 ## construct an *identical* MCMC algorithm
-conf2 <- configureMCMC(Rmodel2)
+conf2 <- configureMCMC(Rmodel2, enableWAIC = useWAIC)
 conf2$removeSamplers(c('b', 'x'))
 conf2$addSampler('b', 'binary')
 conf2$addSampler('x[1]', 'RW')
@@ -246,10 +278,14 @@ stateList <- readRDS(file = '~/temp/state.rds')
 
 modelState <- stateList$modelState
 mcmcState <- stateList$mcmcState
+if(useWAIC)
+    waicState <- stateList$waicState
 
 ## restore the saved "state" into the new model and new MCMC
 setModelState(Cmodel2, modelState)
 setMCMCstate(conf2, Cmcmc2, mcmcState)
+if(useWAIC)
+    setWAICstate(Cmcmc2, waicState)
 ```
 
 \  
@@ -258,7 +294,7 @@ Finally, now you can "resume" the MCMC run, exactly where it left off.
 
 **Important:** Make certain to use the argument `reset = FALSE`, so the
   MCMC state is *not reset* to its initial settings for a new, fresh,
-  MCMC run.
+  MCMC run. If calculating WAIC, also set `resetWAIC = FALSE`.
 
 This option, `reset = FALSE`, is only available through the
 `mcmc$run(...)` invocation of the MCMC algorithm.
@@ -267,7 +303,7 @@ This option, `reset = FALSE`, is only available through the
 
 ```{r }
 ## continue MCMC run
-Cmcmc$run(10000, reset = FALSE)
+Cmcmc2$run(10000, reset = FALSE, resetWAIC = FALSE)
 ```
 
 \   
