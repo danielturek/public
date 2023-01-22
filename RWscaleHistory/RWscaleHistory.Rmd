@@ -1,0 +1,218 @@
+---
+title: "Accessing RW sampler history: proposal scale, covariace, and acceptance rate"
+author: Daniel Turek
+date: 21 January 2023
+output: html_document
+---
+
+<!---
+danielturek.github.io/public/RWscaleHistory/RWscaleHistory.html
+-->
+
+Back to [NIMBLE Vignettes](https://danielturek.github.io/public/nimble_vignettes.html)
+
+\  
+
+NIMBLE's `RW` and `RW_block` samplers contain methods for tracking and accessing the complete history during the course of an MCMC chain of the proposal scale, acceptance rate, and proposal covariance (`RW_block` sampler only).
+
+This vignette demonstrates how to access these these histories.
+
+
+\  
+
+Specify the two NIMBLE system options:
+
+```{r, message = FALSE}
+library(nimble)
+
+nimbleOptions(MCMCsaveHistory = TRUE)
+nimbleOptions(buildInterfacesForCompiledNestedNimbleFunctions = TRUE)
+```
+
+\   
+
+Build a NIMBLE model and MCMC algorithm.
+
+We'll used the venerated `pump` model, and manually configure the MCMC to also include one `RW_block` sampler.
+
+
+```{r message = FALSE}
+code <- nimbleCode({ 
+    alpha ~ dexp(1)
+    beta ~ dgamma(0.1, 1)
+    for(i in 1:N) {
+        theta[i] ~ dgamma(alpha, beta)
+        lambda[i] <- theta[i] * t[i]
+        x[i] ~ dpois(lambda[i])
+    }
+})
+
+N <- 10
+constants <- list(N = N, t = c(94.3, 15.7, 62.9, 126, 5.24, 31.4, 1.05, 1.05, 2.1, 10.5))
+data <- list(x = c(5, 1, 5, 14, 3, 19, 1, 1, 4, 22))
+inits <- list(alpha = 1, beta = 1, theta = rep(0.1, N))
+
+Rmodel <- nimbleModel(code, constants, data, inits)
+
+conf <- configureMCMC(Rmodel)
+
+conf$addSampler(target = c('alpha', 'beta'), type = 'RW_block', silent = TRUE)
+
+Rmcmc <- buildMCMC(conf)
+```
+
+\   
+
+Now compile the model and the MCMC, and run the MCMC algorithm for a modest
+1000 iterations.
+
+```{r message = FALSE}
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+
+set.seed(0)
+samples <- runMCMC(Cmcmc, 1000)
+```
+
+\   
+
+Now, we'll access the proposal and acceptance rate histories of the
+`RW` and `RW_block` samplers.
+
+Use `conf$printSamplers()` to see a printout of all the MCMC samplers.
+
+```{r }
+conf$printSamplers()
+```
+
+More directly, use the `type = 'RW'` argument to print only `RW`
+and `RW_block` samplers.
+
+```{r }
+conf$printSamplers(type = 'RW')
+```
+
+We see the `RW` sampler on `alpha` is sampler \#1, and the bivariate `RW_block`
+operating jointly on `alpha` and `beta` is sampler #13.
+
+The MCMC was run for 1000 iterations, and the default value of the
+adapatation interval for NIMBLE's MCMC samplers is every 200
+iterations.  Thus, the samplers underwent five adaptations, and the empirical
+acceptance rate was recorded five times.
+
+To access the scale and acceptance rate of the `RW` sampler for each
+of these adaptive phases:
+
+```{r }
+Cmcmc$samplerFunctions$contentsList[[1]]$getScaleHistory()
+Cmcmc$samplerFunctions$contentsList[[1]]$getAcceptanceHistory()
+```
+
+Similarly, the `RW_block` sampler underwent five adaptations.  In
+addition to a scalar `scale` and acceptance rate, the `RW_block`
+sampler also has (in this case a 2x2) proposal covariance matrix.  To
+access the history of these variables:
+
+```{r }
+Cmcmc$samplerFunctions$contentsList[[13]]$getScaleHistory()
+Cmcmc$samplerFunctions$contentsList[[13]]$getPropCovHistory()
+Cmcmc$samplerFunctions$contentsList[[13]]$getAcceptanceHistory()
+```
+
+The proposal covariance history is a 5x2x2 array.  That is, the
+initial default proposal covariance matrix was the 2x2 identity
+matrix:
+
+```{r }
+Cmcmc$samplerFunctions$contentsList[[13]]$getPropCovHistory()[1,,]
+```
+
+and the proposal covariance after the final adaptation phase was:
+
+```{r }
+Cmcmc$samplerFunctions$contentsList[[13]]$getPropCovHistory()[5,,]
+```
+
+
+\  
+
+We may wish to use these adapated parameters as the starting values
+of the sampler tuning parameters in a subsequent (perhaps longer) MCMC run.
+
+Let's extract the final `scale` value of the `RW` sampler, and the
+final proposal covariance of the `RW_block` sampler:
+
+```{r }
+(RW_scale <- Cmcmc$samplerFunctions$contentsList[[1]]$getScaleHistory()[5])
+(RW_block_cov <- Cmcmc$samplerFunctions$contentsList[[13]]$getPropCovHistory()[5,,])
+```
+
+\   
+
+
+Finally, we'll configure and build a new MCMC algorithm, using this
+`scale` and proposal covariance as the starting values for the `RW`
+and `RW_block` samplers.
+
+
+```{r }
+conf <- configureMCMC(Rmodel)
+
+conf$removeSampler('alpha', print = TRUE)
+
+conf$addSampler(target = 'alpha', type = 'RW', scale = RW_scale, print = TRUE)
+
+conf$addSampler(target = c('alpha', 'beta'), type = 'RW_block',
+                propCov = RW_block_cov, silent = TRUE, print = TRUE)
+
+conf$printSamplers()
+
+Rmcmc <- buildMCMC(conf)
+```
+
+\   
+
+Voila!
+
+
+
+
+\  
+
+\  
+
+\  
+
+\  
+
+\  
+
+\  
+
+\  
+
+\  
+
+\  
+
+\  
+
+\  
+
+\  
+
+\  
+
+\  
+
+\  
+
+\  
+
+\  
+
+
+
+
+
+

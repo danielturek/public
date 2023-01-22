@@ -49,6 +49,8 @@ danielturek.github.io/public/nimble_vignettes.html
 
 <a href="http://danielturek.github.io/public/toggleSamplers/toggleSamplers.html" target="_blank">Toggling MCMC Samplers On/Off</a> - How to modify MCMC samplers so they can be toggled on or off for different MCMC runs or datasets.
 
+<a href="http://danielturek.github.io/public/RWscaleHistory/RWscaleHistory.html" target="_blank">Accessing RW Sampler Scale and Acceptance Rate History</a> - How to access the full history of proposal scale, proposal covariance, and acceptance rate of `RW` and `RW_block` samplers.
+
 
 \   
 
