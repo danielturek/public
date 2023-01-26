@@ -319,7 +319,7 @@ Now, save all these to a file.
 
 
 ```{r }
-fileName <- '~/temp/restartMCMC.RData'
+fileName <- tempfile()
 save(samples, modelVariables, samplerStates, waicState, seed, file = fileName)
 ```
 
@@ -385,7 +385,7 @@ Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
 Then load our saved file:
 
 ```{r }
-fileName <- '~/temp/restartMCMC.RData'
+##fileName <- '~/temp/restartMCMC.RData'
 load(fileName)
 ```
 
@@ -474,7 +474,7 @@ off.
 
 \   
 
-##### Restore the sampler state variables 
+##### Restore WAIC state variables 
 
 If using WAIC, restore the WAIC state variables.
 

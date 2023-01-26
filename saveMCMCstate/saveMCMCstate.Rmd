@@ -233,7 +233,8 @@ stateList <- list(modelState = getModelState(Cmodel),
 if(useWAIC)
     stateList[['waicState']] <- getWAICstate(Cmcmc)
 
-saveRDS(stateList, file = '~/temp/state.rds')
+fileName <- tempfile()
+saveRDS(stateList, file = fileName)
 ```
 
 \  
@@ -274,7 +275,7 @@ and the new MCMC (`Cmcmc2`).
 
 ```{r }
 ## load the saved "state" file
-stateList <- readRDS(file = '~/temp/state.rds')
+stateList <- readRDS(file = fileName)
 
 modelState <- stateList$modelState
 mcmcState <- stateList$mcmcState
