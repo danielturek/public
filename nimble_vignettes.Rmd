@@ -29,6 +29,8 @@ danielturek.github.io/public/nimble_vignettes.html
 
 <a href="http://danielturek.github.io/public/parallelMCMC/parallelMCMC.html" target="_blank">Parallel MCMC Chains</a> - How to execute parallel MCMC chains using the `parallel` package, and also to optionally continue running each MCMC chain after assessing convergence.
 
+<a href="http://danielturek.github.io/public/sumPostLogDens/sumPostLogDens.html" target="_blank">Record (Unnormalized) Model Log Density</a> - How to record the sum of the (unnormalized) model posterior log-density values on every MCMC iteration.
+
 
 
 

@@ -1,0 +1,114 @@
+---
+title: Record model sum-posterior-log-density
+author: Daniel Turek
+date: 4 October 2023
+output: html_document
+---
+
+<!---
+danielturek.github.io/public/sumPostLogDens/sumPostLogDens.html
+-->
+
+Back to [NIMBLE Vignettes](https://danielturek.github.io/public/nimble_vignettes.html)
+
+\    
+
+Here, we demonstrate how to calculate and record the sum of the (unnormalized) model posterior log-density, on every iteration of an MCMC.
+
+We do this by writing an MCMC sampler which queries the model to find all stochastic nodes, then on every MCMC iteration, stores the current sum-posterior-log-density of all stochastic model nodes into a specified node.  In the example below, that model node is called `logDens`.
+
+Since samplers can only be assigned to stochastic nodes, we have to provide a (stochastic) prior distribution for the `logDens` model node.  This prior distribution will never be used.  As a result, in addition to assigning our custom-written sampler to the `logDens` node, we also have to remove the default sampler assigned to `logDens`.  An upshot, however, is that an MCMC monitor is assigned (by default) to `logDens`.
+
+Example below.
+
+\   
+
+```{r, message = FALSE}
+library(nimble)
+
+sumLogPostDens <- nimbleFunction(
+    name = 'sumLogPostDens',
+    contains = sampler_BASE,
+    setup = function(model, mvSaved, target, control) {
+        stochNodes <- setdiff(model$getNodeNames(stochOnly = TRUE), target)
+    },
+    run = function() {
+        model[[target]] <<- model$getLogProb(stochNodes)
+    },
+    methods = list( reset = function() {} )
+)
+
+code <- nimbleCode({
+    a ~ dnorm(0, sd = 1)
+    b ~ dnorm(0, sd = 2)
+    y ~ dnorm(a + b, sd = 3)
+    logDens ~ dnorm(0, 1)    ## this distribution does not matter
+})
+constants <- list()
+data <- list(y = 3)
+inits <- list(a = 0, b = 1)
+
+Rmodel <- nimbleModel(code, constants, data, inits)
+
+conf <- configureMCMC(Rmodel, print = FALSE)
+conf$removeSamplers('logDens')   ## remove sampler assigned to 'logDens'
+conf$addSampler(target = 'logDens', type = 'sumLogPostDens')   ## add our custom sampler
+conf$printSamplers()
+
+Rmcmc <- buildMCMC(conf)
+
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+
+set.seed(0)
+samples <- runMCMC(Cmcmc, 10)
+
+## demonstrate numerically that these logDens calculations are correct:
+
+a <- samples[, 'a']
+b <- samples[, 'b']
+y <- data$y
+cbind(
+    dnorm(a,0,1,log=TRUE) + dnorm(b,0,2,log=TRUE) + dnorm(y,a+b,3,log=TRUE),
+    samples[, 'logDens']
+)
+```
+
+
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+\   
+
+
+
+
+
+
+
+
+
+
+
+
+
