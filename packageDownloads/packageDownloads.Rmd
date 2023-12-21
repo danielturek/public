@@ -21,13 +21,20 @@ Green lines display LOWESS [1,2] smoothed curves.
 
 \   
 
-```{r }
+
+```{r echo = FALSE}
 suppressMessages(library(cranlogs))
 suppressMessages(library(gplots))
+```
+
+
+```{r }
+library(cranlogs)
+library(gplots)
 
 df <- data.frame(
-    pkgs = c('nimble', 'MATA', 'basicMCMCplots', 'BayesNSGP', 'nimbleEcology', 'nimbleSCR', 'nimbleSMC'),
-    ymax = c(200, 80, 80, 40, 40, 30, 30)
+    pkgs = c('nimble', 'MATA', 'basicMCMCplots', 'BayesNSGP', 'nimbleEcology', 'nimbleSCR', 'nimbleSMC', 'nimbleHMC'),
+    ymax = c(200, 80, 80, 40, 40, 30, 30, 30)
 )
 
 from <- '2018-01-01'
@@ -39,13 +46,14 @@ for(i in 1:nrow(df)) {
     date <- downloads[downloads$package == df$pkgs[i], ]$date
     plot(count ~ date, main = df$pkgs[i], ylim = c(0, df$ymax[i]),
          type = 'l', xlab = 'Date', ylab = 'Daily Downloads')
+    ind <- min(which(count > 0)) : length(count) 
+    smoothed <- gplots::lowess(count[ind] ~ as.numeric(date[ind]), f = 1) 
+    lines(x = smoothed$x, y = smoothed$y, col = 'green', lwd = 3) 
 }
 ```
 
 <!--
-    ##ind <- min(which(count > 0)) : length(count)
-    ##smoothed <- gplots::lowess(count[ind] ~ as.numeric(date[ind]), f = 1)
-    ##lines(x = smoothed$x, y = smoothed$y, col = 'green', lwd = 3)
+smoothing code can be moved to here
 -->
 
 \   
